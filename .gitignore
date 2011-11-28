@@ -1,0 +1,11 @@
+# Ignore doxygen-generated html directories
+html
+
+# Ignore compiled files
+*.gch
+*.o
+*.a
+*.so
+
+# Ignore editor backup files
+*~
