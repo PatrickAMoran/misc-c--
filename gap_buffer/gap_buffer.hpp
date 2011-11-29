@@ -36,6 +36,8 @@
 
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/concept/assert.hpp>
+#include <boost/concept_check.hpp>
 #include <iterator>
 
 
@@ -64,6 +66,12 @@ template<class TContainer>
 class gap_buffer
 {
 private:
+  // Check our requirements on TContainer
+  BOOST_CONCEPT_ASSERT(( boost::Mutable_ForwardContainer<    TContainer> ));
+  BOOST_CONCEPT_ASSERT(( boost::Mutable_ReversibleContainer< TContainer> ));
+  BOOST_CONCEPT_ASSERT(( boost::Mutable_Container<           TContainer> ));
+  BOOST_CONCEPT_ASSERT(( boost::Sequence<                    TContainer> ));
+
   // This iterator template uses Boost.Iterator to produce the four iterator
   // types for gap_buffer.  It manages the process of jumping from the end of
   // the before container to the beginning of the after container, and vice
@@ -231,6 +239,12 @@ public:
   size_type insert(TSinglePassRange const & range);
   //@}
 
+private:
+  // Check our iterator's concepts
+  BOOST_CONCEPT_ASSERT((boost::Mutable_BidirectionalIterator<        iterator>));
+  BOOST_CONCEPT_ASSERT((boost::Mutable_BidirectionalIterator<reverse_iterator>));
+  BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<          const_iterator>));
+  BOOST_CONCEPT_ASSERT((boost::BidirectionalIterator<  const_reverse_iterator>));
 
 };
 
