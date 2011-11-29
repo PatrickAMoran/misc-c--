@@ -70,6 +70,10 @@ private:
   // versa.
   template<class TUnderlying>
   struct iterator_impl;
+  template<class TUnderlying, class TConstIter>
+  struct nonconst_iterator_impl;
+  template<class TUnderlying>
+  struct const_iterator_impl;
 
   typedef typename std::iterator_traits<typename TContainer::iterator>::
   iterator_category iterator_category;
@@ -103,14 +107,17 @@ public:
   void swap(gap_buffer & other);
   //@}
 
-
   ///@name Iterator access
   //@{
-  typedef iterator_impl<typename TContainer::iterator>         iterator;
-  typedef iterator_impl<typename TContainer::const_iterator>   const_iterator;
-  typedef iterator_impl<typename TContainer::reverse_iterator> reverse_iterator;
-  typedef iterator_impl<typename TContainer::const_reverse_iterator>
+  typedef const_iterator_impl<typename TContainer::const_iterator>
+  const_iterator;
+  typedef nonconst_iterator_impl<typename TContainer::iterator, const_iterator>
+  iterator;
+  typedef const_iterator_impl<typename TContainer::const_reverse_iterator>
   const_reverse_iterator;
+  typedef nonconst_iterator_impl<
+    typename TContainer::reverse_iterator,
+    const_reverse_iterator> reverse_iterator;
 
   /// Return the cursor position as an iterator
   iterator here();

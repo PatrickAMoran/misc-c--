@@ -44,8 +44,6 @@
 template<class TContainer>
 template<class TUnderlying>
 struct gap_buffer<TContainer>::iterator_impl
-  : public boost::iterator_facade<iterator_impl<TUnderlying>, value_type,
-				  iterator_category>
 {
 public:
   iterator_impl(TUnderlying here,
@@ -57,7 +55,9 @@ public:
     , before_end(bef_end)
     , after_begin(aft_beg)
   {}
-private:
+protected:
+  struct Incomplete_Type;
+
   // Grant access to Boost.Iterator
   friend class boost::iterator_core_access;
   // If the \a location iterator belongs to the before container of the
@@ -66,15 +66,10 @@ private:
   // The underlying iterator into either before or after
   TUnderlying location;
   // The end iterator of before
-  TUnderlying const before_end;
+  TUnderlying before_end;
   // The begin iterator of after
-  TUnderlying const after_begin;
+  TUnderlying after_begin;
 
-  // Dereference the iterator, as a callback to Boost.Iterator
-  reference dereference() const
-  {
-    return *location;
-  }
   // Compare the iterator for equality, as a callback to Boost.Iterator
   bool equal(iterator_impl const & other) const
   {
@@ -104,9 +99,83 @@ private:
 	location = after_begin;
       }
     }
-    advance(location, n);
+    std::advance(location, n);
+  }
+  // Measure distance between to iterators as callback to Boost.Iterator
+  difference_type distance_to(iterator_impl const & other) const
+  {
+    if(is_before == other.is_before)
+      return std::distance(location, other.location);
+    else if(is_before)
+      return std::distance(location, before_end) + 
+	std::distance(after_begin, other.location);
+    else
+      return std::numeric_limits<difference_type>::max();
   }
 };
+
+template<class TContainer>
+template<class TUnderlying>
+struct gap_buffer<TContainer>::const_iterator_impl
+  : private iterator_impl<TUnderlying>
+  , public boost::iterator_facade<const_iterator_impl<TUnderlying>,
+				  typename std::iterator_traits<TUnderlying>::value_type,
+				  iterator_category,
+				  const_reference>
+{
+public:
+  const_iterator_impl(TUnderlying here,
+		      bool is_before,
+		      TUnderlying bef_end,
+		      TUnderlying aft_beg)
+    : iterator_impl<TUnderlying>(here, is_before, bef_end, aft_beg)
+  {}
+  
+private:
+  // Grant access to Boost.Iterator
+  friend class boost::iterator_core_access;
+  friend class gap_buffer<TContainer>;
+
+  const_reference dereference() const
+  {
+    return *this->location;
+  }
+};
+
+template<class TContainer>
+template<class TUnderlying, class TConstIter>
+struct gap_buffer<TContainer>::nonconst_iterator_impl
+  : iterator_impl<TUnderlying>
+  , boost::iterator_facade<nonconst_iterator_impl<TUnderlying, TConstIter>,
+			   typename std::iterator_traits<TUnderlying>::value_type,
+			   iterator_category>
+{
+public:
+  nonconst_iterator_impl(TUnderlying here,
+			 bool is_before,
+			 TUnderlying bef_end,
+			 TUnderlying aft_beg)
+    : iterator_impl<TUnderlying>(here, is_before, bef_end, aft_beg)
+  {}
+  
+private:
+  // Grant access to Boost.Iterator
+  friend class boost::iterator_core_access;
+  friend class gap_buffer<TContainer>;
+
+  reference dereference() const
+  {
+    return *this->location;
+  }
+
+  operator TConstIter() const
+  {
+    return TConstIter(this->location, this->is_before,
+		      this->before_end, this->after_begin);
+  }
+};
+
+
 
 
 
