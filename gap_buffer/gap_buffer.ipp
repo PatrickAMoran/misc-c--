@@ -36,10 +36,9 @@
 // Include boost::iterator_facade from Boost.Iterator
 #include <boost/iterator/iterator_facade.hpp>
 
-// Several STL algorithms
 #include <algorithm>
 #include <functional>
-
+#include <limits>
 
 template<class TContainer>
 template<class TUnderlying>
@@ -385,6 +384,157 @@ rend() const
 				before.rbegin());
 }
 
+
+template<class TContainer>
+gap_buffer<TContainer>::gap_buffer()
+{}
+
+template<class TContainer>
+gap_buffer<TContainer>::gap_buffer(gap_buffer const & other)
+  : before(other.before)
+  , after(other.after)
+{}
+
+template<class TContainer>
+gap_buffer<TContainer> &
+gap_buffer<TContainer>::operator=(gap_buffer const & other)
+{
+  before = other.before;
+  after = other.after;
+  return *this;
+}
+
+
+template<class TContainer>
+gap_buffer<TContainer>::gap_buffer(size_type n, value_type e)
+  : before(n, e)
+{}
+
+template<class TContainer>
+template<class InputIterator>
+gap_buffer<TContainer>::gap_buffer(InputIterator const & i,
+				   InputIterator const & j)
+  : before(i, j)
+{}
+
+template<class TContainer>
+typename gap_buffer<TContainer>::reference
+gap_buffer<TContainer>::front()
+{
+  return before.front();
+}
+
+template<class TContainer>
+typename gap_buffer<TContainer>::const_reference
+gap_buffer<TContainer>::front() const
+{
+  return before.front();
+}
+
+template<class TContainer>
+typename gap_buffer<TContainer>::iterator
+gap_buffer<TContainer>::insert(iterator position, const_reference element)
+{
+  typename TContainer::iterator iter;
+  bool is_before;
+  if(position.location == after.begin()){
+    before.insert(before.end(), element);
+    iter = after.begin();
+    is_before = false;
+  }else if(position.is_before){
+    iter = before.insert(position.location, element);
+    is_before = true;
+  }else{
+    iter = after.insert(position.location, element);
+    is_before = false;
+  }
+  return iterator(iter, is_before, before.end(), after.begin());
+}
+
+template<class TContainer>
+void 
+gap_buffer<TContainer>::insert(iterator position, size_type n,
+			       const_reference element)
+{
+  if(position.location == after.begin())
+    before.insert(before.end(), n, element);
+  else if(position.is_before)
+    before.insert(position.location, n, element);
+  else
+    after.insert(position.location, n, element);
+}
+
+template<class TContainer>
+template<class InputIterator>
+void
+gap_buffer<TContainer>::insert(iterator position,
+			       InputIterator const & i, InputIterator const & j)
+{
+  if(position.location == after.begin())
+    before.insert(before.end(), i, j);
+  else if(position.is_before)
+    before.insert(position.location, i, j);
+  else
+    after.insert(position.location, i, j);
+}
+
+template<class TContainer>
+typename gap_buffer<TContainer>::iterator
+gap_buffer<TContainer>::erase(iterator position)
+{
+  bool is_before = position.is_before;
+  TContainer & to_erase_from = (is_before ? before : after);
+  typename TContainer::iterator iter = to_erase_from.erase(position.location);
+
+  if(iter == before.end()){
+    is_before = false;
+    iter = after.begin();
+  }
+  return iterator(iter, is_before, before.end(), after.begin());
+}
+
+template<class TContainer>
+typename gap_buffer<TContainer>::iterator
+gap_buffer<TContainer>::erase(iterator start, iterator end)
+{
+  typename TContainer::iterator
+    before_begin = (start.is_before ? start.location : before.end()   ),
+    before_end   = (end.is_before   ? end.location   : before.end()   ),
+    after_begin  = (start.is_before ? after.begin()  : start.location ),
+    after_end    = (end.is_before   ? after.begin()  : end.location   );
+
+  bool const use_after =
+    (after_end != after.begin()) || 
+    ((before_end == before.end()) && (before_begin != before.end()));
+  
+  typename TContainer::iterator
+    before_rtn = before.erase( before_begin, before_end ),
+    after_rtn  = after. erase( after_begin,  after_end  );
+
+  return iterator((use_after ? after_rtn : before_rtn), use_after, 
+		  before.end(), after.begin());
+}
+
+template<class TContainer>
+void
+gap_buffer<TContainer>::clear()
+{
+  before.clear();
+  after.clear();
+}
+
+
+template<class TContainer>
+void
+gap_buffer<TContainer>::resize(size_type n, value_type const & e)
+{
+  if(n <= before.size() || after.empty()){
+    after.clear();
+    before.resize(n, e);
+  }
+  else
+    after.resize(n - before.size());
+}
 
 template<class TContainer>
 bool

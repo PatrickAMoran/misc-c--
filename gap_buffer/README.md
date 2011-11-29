@@ -28,7 +28,6 @@ TODO
 Planned improvements to this class template include:
 
 * General cleanup / reorganization of the ipp file.
-* Make gap_buffer model Sequence
 * Make doxygen report 'boost::enable_if_c<condition, type>' as 'type'
 * Add lots more testing and verification
 * Use Boost.ConceptCheck to provide users with better error messages

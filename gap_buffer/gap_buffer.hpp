@@ -88,6 +88,8 @@ public:
   typedef typename TContainer::value_type                  value_type;
   /// value_type *
   typedef typename TContainer::pointer                     pointer;
+  /// value_type const *
+  typedef typename TContainer::const_pointer               const_pointer;
   /// value_type &
   typedef typename TContainer::reference                   reference;
   /// value_type const &
@@ -148,6 +150,62 @@ public:
   /// reversed gap_buffer
   const_reverse_iterator rend() const;
   //@}
+
+  /// @name Sequence Requirements
+  //@{
+  /// Default-construct an empty gap_buffer
+  gap_buffer();
+  
+  /// Copy-construct a gap_buffer
+  gap_buffer(gap_buffer const & other);
+
+  /// Fill-construct a gap_buffer with n copies of e and the cursor at the end
+  gap_buffer(size_type n, value_type e = value_type());
+
+  /// @brief Construct a gap buffer whose contents are the range [i, j) with
+  ///        the cursor at the end
+  /// @tparam InputIterator A model of Input Iterator whose value_type is
+  ///                       convertible to value_type
+  template<class InputIterator>
+  gap_buffer(InputIterator const & i, InputIterator const & j);
+
+  /// Retrieve the first element of the gap_buffer
+  reference       front();
+  /// Retrieve the first element of the gap_buffer
+  const_reference front() const;
+
+  /// Insert element immediately following position.  If position is at or
+  /// before the cursor, advance the cursor one position.
+  iterator insert(iterator position, const_reference element);
+
+  /// Insert n copies of element immediately following position.  If position
+  /// is at or before the cursor, advance the cursor n positions.
+  void insert(iterator position, size_type n, const_reference element);
+
+  /// Insert the range of elements [i,j) immediately following position. If
+  /// position is at or before the cursor, advance the cursor n positions.
+  template<class InputIterator>
+  void insert(iterator position, 
+	      InputIterator const & i, InputIterator const & j);
+
+  /// Erase the element at position.  If the cursor was at position, move it to
+  /// one spot earlier, unless *this is empty.
+  iterator erase(iterator position);
+
+  /// Erase the elements in [start,end).  If the cursor was within this range,
+  /// move it to immediately before the range, unless *this is now empty.
+  iterator erase(iterator start, iterator end);
+
+  /// Remove all the elements in this and move the cursor to the beginning
+  void clear();
+
+  /// Resize the gap_buffer.  If the buffer is growing, pad the end with copies
+  /// of e.  If the buffer is shrinking, discard elements from the end.
+  void resize(size_type n, value_type const & e = value_type());
+
+  gap_buffer & operator=(gap_buffer const & other);
+  //@}
+
 
   /// @name Cursor Handling
   //@{
