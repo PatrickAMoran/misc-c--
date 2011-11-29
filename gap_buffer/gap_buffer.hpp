@@ -49,8 +49,7 @@
    performance characteristics are desirable.
 
    A gap_buffer is an STL container.  It models the STL concepts Container,
-   Forward Container, and Reversible Container.  Additionally, if TContainer
-   models Reversible Container, then so does gap_buffer<TContainer>.
+   Forward Container, and Reversible Container.
 
    @tparam TContainer The underlying container type of the gap buffer.  A single
                       gap buffer will own two instances of TContainer - the area
@@ -74,11 +73,6 @@ private:
 
   typedef typename std::iterator_traits<typename TContainer::iterator>::
   iterator_category iterator_category;
-
-  // Determine if TContainer is a Random Access Container by checking to see if
-  // its iterators are random access iterators
-  static const bool IS_RANDOM_ACCESS =
-    boost::is_same<iterator_category, std::random_access_iterator_tag>::value;
 
   TContainer before;
   TContainer after;
@@ -172,20 +166,7 @@ public:
   size_type insert(TSinglePassRange const & range);
   //@}
 
-  /// @name Random Access
-  /// @note This is only available when the underlying TContainer is a random
-  ///       access container
-  //@{
-  /// @brief Return a reference to the element at the given index
-  /// @note Only available if TContainer is a model of "Random Access Container"
-  typename boost::enable_if_c<IS_RANDOM_ACCESS, reference>::type
-  operator[](size_type const);
 
-  /// @brief Return a const reference to the element at the given index
-  /// @note Only available if TContainer is a model of "Random Access Container"
-  typename boost::enable_if_c<IS_RANDOM_ACCESS, const_reference>::type
-  operator[](size_type const) const;
-  //@}
 };
 
 ///@name Comparisons

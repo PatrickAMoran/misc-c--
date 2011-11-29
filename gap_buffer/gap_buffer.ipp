@@ -212,27 +212,6 @@ erase(typename gap_buffer<TContainer>::difference_type const d)
     }
 }
 
-
-template<class TContainer>
-typename boost::enable_if_c<gap_buffer<TContainer>::IS_RANDOM_ACCESS, 
-			    typename gap_buffer<TContainer>::reference>::type
-gap_buffer<TContainer>::
-operator[](size_type const pos)
-{
-  return ((pos < position()) ? before[pos] : after[pos - position()]);
-}
-
-template<class TContainer>
-typename boost::enable_if_c<gap_buffer<TContainer>::IS_RANDOM_ACCESS, 
-			    typename gap_buffer<TContainer>::const_reference>::
-type
-gap_buffer<TContainer>::
-operator[](size_type const pos) const
-{
-  return ((pos < position()) ? before[pos] : after[pos - position()]);
-}
-
-
 template<class TContainer>
 typename gap_buffer<TContainer>::iterator
 gap_buffer<TContainer>::
