@@ -31,7 +31,10 @@
 
 
 
+
+/* \/-\/ ----- \/-\/ ----- Dependencies ----- \/-\/ ----- \/-\/ */
 #include <boost/preprocessor/seq/enum.hpp>
+
 #include <boost/mpl/not.hpp>
 #include <boost/mpl/and.hpp>
 #include <boost/mpl/or.hpp>
@@ -39,9 +42,16 @@
 #include <boost/mpl/pop_front.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mpl/fold.hpp>
+
 #include <boost/type_traits/is_same.hpp>
+#include <boost/type_traits/add_const.hpp>
+#include <boost/type_traits/add_reference.hpp>
+
 #include <boost/utility/enable_if.hpp>
+
 #include <boost/config.hpp>
+
+#include <boost/tuple/tuple.hpp>
 
 
 #ifdef BOOST_NO_VARIADIC_TEMPLATES
@@ -49,12 +59,16 @@
 #endif
 
 
+/* \/-\/ ----- \/-\/ ----- Preprocessor Shorthand ----- \/-\/ ----- \/-\/ */
+
 // Generate the enable_if argument by checking the condition named cond
 // against the type sequence tested, with type as the result on success
-#define EN_IF(cond, tested, type)				\
-  typename boost::enable_if<typename base_t::template		\
-			    cond ## _cond<BOOST_PP_SEQ_ENUM(tested)>,	\
-			    type>::type
+
+#define EN_IF(cond, tested, res_type)					\
+  typename boost::enable_if<EN_IF_COND(cond, tested), res_type>::type
+
+#define EN_IF_COND(cond, tested)				\
+  typename base_t::template cond ## _cond<BOOST_PP_SEQ_ENUM(tested)>
 
 // Shortcut for template parameters
 #define TPARAMS template<class ...Concepts>	\
@@ -63,34 +77,40 @@
 // Generate an overload stub
 #define OVERLOAD_BEGIN(a, b, c)						\
   TPARAMS								\
-  class dynamic_archetype<Concepts...>::impl::			\
-  constructor_gen<Policy, Parent, a, b, c>				\
+  class dynamic_archetype<Concepts...>::impl::				\
+    constructor_gen<Policy, Parent, a, b, c> : public Parent		\
   {									\
-    typedef class constructor_gen<Policy, Parent, true, true, true> base_t; \
-    									\
-  public:								\
-    template<class TOther> explicit					\
-    constructor_gen(EN_IF(explicit_constructor, (TOther), TOther)){}	\
+   private:								\
+      struct Invisible{};						\
+      typedef class constructor_gen<Policy, Parent, true, true, true> base_t; \
 									\
-    template<class TOther>						\
-    constructor_gen(EN_IF(implicit_constructor, (TOther), TOther)){}	\
+public:									\
 									\
-    template<class TFirst, class... TOthers>				\
-    constructor_gen(EN_IF(constructor, (TFirst)(TOthers...), TFirst),	\
-		    TOthers...) {}
+ template<class TOther> explicit					\
+ constructor_gen(TOther o,  EN_IF(explicit_constructor,			\
+				  (TOther), Invisible const &)		\
+		 = Invisible())						\
+   : Parent(make_single_tuple(o))					\
+ {									\
+ }									\
+									\
+									\
+  template<class... Args,						\
+	   EN_IF(constructor, (Args...), int) = 0>			\
+  constructor_gen(Args... args)						\
+    : Parent(args...)							\
+  {}
 
 #define OVERLOAD_END() }
 
 // MPL/Type Traits shorthands
-#define AND boost::mpl::and_
-#define OR boost::mpl::or_
-#define NOT boost::mpl::not_
+#define AND  boost::mpl::and_
+#define OR   boost::mpl::or_
+#define NOT  boost::mpl::not_
 #define SAME boost::is_same
 
-// Shortcut for pulling templates from the policy
-#define POLICY(cond) typename Policy::template cond
 
-
+/* \/-\/ ----- \/-\/ ----- Metaprogramming Code ----- \/-\/ ----- \/-\/ */
 
 namespace dynamic_archetypes {
 
@@ -123,6 +143,16 @@ namespace dynamic_archetypes {
 		    combined_concept::has_copy_constructor::value,
 		    combined_concept::copy_is_explicit::value>
     unspecified_type;
+
+    template<class T>
+    static
+    boost::tuple<typename boost::add_reference<
+		   typename boost::add_const<T>::type>::type>
+    make_single_tuple(T const & elem)
+    {
+      return boost::tuple<typename boost::add_reference<
+	typename boost::add_const<T>::type>::type>(elem);
+    }
   };
 
   template<class ...Concepts>
@@ -164,82 +194,84 @@ namespace dynamic_archetypes {
   TPARAMS
   class dynamic_archetype<Concepts...>::impl::
     constructor_gen<Policy, Parent, true, true, true>
+    : public Parent
   {
     template<class TOther> struct explicit_constructor_cond;
-    template<class TOther> struct implicit_constructor_cond;    
     template<class... TOthers> struct constructor_cond; // REQUIRES VARIADICS
-    friend class constructor_gen<Policy, Parent, true, true, false>;
-    friend class constructor_gen<Policy, Parent, true, false, false>;
-    friend class constructor_gen<Policy, Parent, false, true, true>;
-    friend class constructor_gen<Policy, Parent, false, true, false>;
-    friend class constructor_gen<Policy, Parent, false, false, false>;
+#define FRIEND(a, b, c) friend class constructor_gen<Policy, Parent, a, b, c>
+    FRIEND(true,  true,  false);
+    FRIEND(true,  false, false);
+    FRIEND(false, true,  true );
+    FRIEND(false, true,  false);
+    FRIEND(false, false, false);
+#undef FRIEND
+    struct Invisible {};
   public:
-    constructor_gen()                                 {}
-    explicit constructor_gen(constructor_gen const &) {}
-    template<class TOther> explicit 
-    constructor_gen(typename boost::enable_if<
+    constructor_gen()                                       : Parent()      {}
+    explicit constructor_gen(constructor_gen const & other) : Parent(other) {}
+    template<class TOther> explicit
+    constructor_gen(TOther t,
+		    typename boost::enable_if<
 		      explicit_constructor_cond<TOther>,
-		      TOther>::type ) {}
-    template<class TOther>
-    constructor_gen(typename boost::enable_if<
-		      implicit_constructor_cond<TOther>, 
-		      TOther>::type) {}
-    template<class TFirst, class... TOthers>
-    constructor_gen(typename boost::enable_if<
-		      constructor_cond<TFirst, TOthers...>,
-		      TFirst>::type, TOthers...) {}
+		      Invisible const &>::type = Invisible())
+      : Parent(make_single_tuple(t))
+    {}
+    template<class... Args,
+	     typename
+	     boost::enable_if_c<
+	       constructor_cond<Args...>::value, int>::type = 0>
+    constructor_gen(Args... args)
+      : Parent( boost::make_tuple(args...) )
+    {}
+
   };
 
   OVERLOAD_BEGIN(true, true, false)
-    constructor_gen()                        {}
-    constructor_gen(constructor_gen const &) {}
+    constructor_gen()                         : Parent()                     {}
+    constructor_gen(constructor_gen const &t) : Parent(make_single_tuple(t)) {}
   OVERLOAD_END();
 
   OVERLOAD_BEGIN(true, false, false)
-    constructor_gen() {}
+    constructor_gen()                         : Parent()                     {}
   private:
-    constructor_gen(constructor_gen const &) {}
+    constructor_gen(constructor_gen const &t) : Parent(make_single_tuple(t)) {}
   OVERLOAD_END();
 
   OVERLOAD_BEGIN(false, true, true)
-    explicit constructor_gen(constructor_gen const &) {}
+    explicit constructor_gen(constructor_gen const & t)
+      : Parent(make_single_tuple(t))
+    {}
   private:
-    constructor_gen() {}
+    constructor_gen() : Parent() {}
   OVERLOAD_END();
 
   OVERLOAD_BEGIN(false, true, false)
-    constructor_gen(constructor_gen const &) {}
+    constructor_gen(constructor_gen const & t) : Parent(make_single_tuple(t)) {}
   private:
-    constructor_gen() {}
+    constructor_gen() : Parent() {}
   OVERLOAD_END();
 
   OVERLOAD_BEGIN(false, false, false)
   private:
-    constructor_gen() {}
-    constructor_gen(constructor_gen const &) {}
+    constructor_gen() : Parent() {}
+    constructor_gen(constructor_gen const &t ) : Parent(make_single_tuple(t)) {}
   OVERLOAD_END();
 
-
-#define COND(name, policy_tag)						\
-  TPARAMS								\
-  template<class TOther>						\
-  struct dynamic_archetype<Concepts...>::impl::			\
-    constructor_gen<Policy, Parent, true, true, true>:: name ##_cond {	\
-    typedef AND<NOT<SAME<TOther, constructor_gen> >,			\
-		POLICY(policy_tag)<TOther> >				\
-      type;								\
-  }
-
-
-  COND(explicit_constructor, explicitly_construct_from);
-  COND(implicit_constructor, construct_from);
+  TPARAMS
+  template<class TOther>
+  struct dynamic_archetype<Concepts...>::impl::
+    constructor_gen<Policy, Parent, true, true, true>::
+  explicit_constructor_cond {
+    static bool const value = 
+      Policy::template explicitly_construct_from<TOther>::type::value;
+  };
 
   TPARAMS
   template<class... TOthers>  
   struct dynamic_archetype<Concepts...>::impl::
     constructor_gen<Policy, Parent, true, true, true>::constructor_cond {
-    typedef typename Policy::template construct_from<TOthers...>::type
-    type;
+    static const bool value =
+      Policy::template construct_from<TOthers...>::type::value;
   };
 
 #define COMBINE(name, oper)					\
@@ -263,7 +295,7 @@ namespace dynamic_archetypes {
     COMBINE( copy_is_explicit,        AND );
 
     template<class T> struct construct_from : public
-    OR<typename A1::template construct_from<T>, 
+    OR<typename A1::template construct_from<T>,
        typename A2::template construct_from<T> >
     {};
 
@@ -277,7 +309,6 @@ namespace dynamic_archetypes {
 
 }
 
-#undef COND
 #undef EN_IF
 #undef OVERLOAD_BEGIN
 #undef OVERLOAD_END
@@ -285,5 +316,4 @@ namespace dynamic_archetypes {
 #undef AND
 #undef NOT
 #undef SAME
-#undef POLICY
 #undef COMBINE
