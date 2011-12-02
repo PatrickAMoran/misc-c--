@@ -64,44 +64,11 @@
 // Generate the enable_if argument by checking the condition named cond
 // against the type sequence tested, with type as the result on success
 
-#define EN_IF(cond, tested, res_type)					\
-  typename boost::enable_if<EN_IF_COND(cond, tested), res_type>::type
-
-#define EN_IF_COND(cond, tested)				\
-  typename base_t::template cond ## _cond<BOOST_PP_SEQ_ENUM(tested)>
 
 // Shortcut for template parameters
 #define TPARAMS template<class ...Concepts>	\
   template<class Policy, class Parent>
 
-// Generate an overload stub
-#define OVERLOAD_BEGIN(a, b, c)						\
-  TPARAMS								\
-  class dynamic_archetype<Concepts...>::impl::				\
-    constructor_gen<Policy, Parent, a, b, c> : public Parent		\
-  {									\
-   private:								\
-      struct Invisible{};						\
-      typedef class constructor_gen<Policy, Parent, true, true, true> base_t; \
-									\
-public:									\
-									\
- template<class TOther> explicit					\
- constructor_gen(TOther o,  EN_IF(explicit_constructor,			\
-				  (TOther), Invisible const &)		\
-		 = Invisible())						\
-   : Parent(make_single_tuple(o))					\
- {									\
- }									\
-									\
-									\
-  template<class... Args,						\
-	   EN_IF(constructor, (Args...), int) = 0>			\
-  constructor_gen(Args... args)						\
-    : Parent(args...)							\
-  {}
-
-#define OVERLOAD_END() }
 
 // MPL/Type Traits shorthands
 #define AND  boost::mpl::and_
@@ -168,111 +135,7 @@ namespace dynamic_archetypes {
     typedef boost::mpl::list<T> type;
   };
 
-  /*
-    Implementation Note:
-      If we wish to stay C++03 compatible, we can't inherit constructors.  So
-      even though we build up our dynamic archetypes recursively through
-      inheritance, all the constructors must be pushed to the bottom of the
-      inheritance DAG.
 
-      To acheive this, the type returned to the user is always an instanitiation
-      of constructor_gen. It's Policy parameter contains instructions on which
-      constructors should be implemented.  It will then inherit from the Parent
-      parameter, which is where the recursion to the other archetypes will take
-      place.  Finally, three specific arguments of the recursion (is there a
-      default constructor, is there a copy constructor and if there is a copy
-      constructor is it explicit?) are split out since they must be specialized
-      on.
-
-      It probably seems inconsistent to go through what is essentially a lot of
-      boilerplate when at least some of it could be eliminated via C++11.  We
-      could go from 6 specializations to 3 by using default template parameters
-      on a function (on the default constructor).  Yet we still require variadic
-      templates.  The reason is that the variadic template requirement will be
-      removed and emulation provided additionally.
-  */
-  TPARAMS
-  class dynamic_archetype<Concepts...>::impl::
-    constructor_gen<Policy, Parent, true, true, true>
-    : public Parent
-  {
-    template<class TOther> struct explicit_constructor_cond;
-    template<class... TOthers> struct constructor_cond; // REQUIRES VARIADICS
-#define FRIEND(a, b, c) friend class constructor_gen<Policy, Parent, a, b, c>
-    FRIEND(true,  true,  false);
-    FRIEND(true,  false, false);
-    FRIEND(false, true,  true );
-    FRIEND(false, true,  false);
-    FRIEND(false, false, false);
-#undef FRIEND
-    struct Invisible {};
-  public:
-    constructor_gen()                                       : Parent()      {}
-    explicit constructor_gen(constructor_gen const & other) : Parent(other) {}
-    template<class TOther> explicit
-    constructor_gen(TOther t,
-		    typename boost::enable_if<
-		      explicit_constructor_cond<TOther>,
-		      Invisible const &>::type = Invisible())
-      : Parent(make_single_tuple(t))
-    {}
-    template<class... Args,
-	     typename
-	     boost::enable_if_c<
-	       constructor_cond<Args...>::value, int>::type = 0>
-    constructor_gen(Args... args)
-      : Parent( boost::make_tuple(args...) )
-    {}
-
-  };
-
-  OVERLOAD_BEGIN(true, true, false)
-    constructor_gen()                         : Parent()                     {}
-    constructor_gen(constructor_gen const &t) : Parent(make_single_tuple(t)) {}
-  OVERLOAD_END();
-
-  OVERLOAD_BEGIN(true, false, false)
-    constructor_gen()                         : Parent()                     {}
-  private:
-    constructor_gen(constructor_gen const &t) : Parent(make_single_tuple(t)) {}
-  OVERLOAD_END();
-
-  OVERLOAD_BEGIN(false, true, true)
-    explicit constructor_gen(constructor_gen const & t)
-      : Parent(make_single_tuple(t))
-    {}
-  private:
-    constructor_gen() : Parent() {}
-  OVERLOAD_END();
-
-  OVERLOAD_BEGIN(false, true, false)
-    constructor_gen(constructor_gen const & t) : Parent(make_single_tuple(t)) {}
-  private:
-    constructor_gen() : Parent() {}
-  OVERLOAD_END();
-
-  OVERLOAD_BEGIN(false, false, false)
-  private:
-    constructor_gen() : Parent() {}
-    constructor_gen(constructor_gen const &t ) : Parent(make_single_tuple(t)) {}
-  OVERLOAD_END();
-
-  TPARAMS
-  template<class TOther>
-  struct dynamic_archetype<Concepts...>::impl::
-    constructor_gen<Policy, Parent, true, true, true>::
-  explicit_constructor_cond {
-    static bool const value = 
-      Policy::template explicitly_construct_from<TOther>::type::value;
-  };
-
-  TPARAMS
-  template<class... TOthers>  
-  struct dynamic_archetype<Concepts...>::impl::
-    constructor_gen<Policy, Parent, true, true, true>::constructor_cond {
-    static const bool value =
-      Policy::template construct_from<TOthers...>::type::value;
-  };
 
 #define COMBINE(name, oper)					\
   typedef oper<typename A1::name, typename A2::name> name
@@ -309,9 +172,10 @@ namespace dynamic_archetypes {
 
 }
 
-#undef EN_IF
-#undef OVERLOAD_BEGIN
-#undef OVERLOAD_END
+
+// Pull in the refactored constructor_gen specializations
+#include "detail/constructor_gen.ipp"
+
 #undef TPARAMS
 #undef AND
 #undef NOT
