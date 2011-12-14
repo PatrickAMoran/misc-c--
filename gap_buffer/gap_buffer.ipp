@@ -109,7 +109,7 @@ protected:
       return std::distance(location, before_end) + 
 	std::distance(after_begin, other.location);
     else
-      return std::numeric_limits<difference_type>::max();
+      return -other.distance_to(*this);
   }
 };
 
