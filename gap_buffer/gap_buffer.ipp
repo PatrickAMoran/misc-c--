@@ -310,8 +310,7 @@ typename gap_buffer<TContainer>::const_reverse_iterator
 gap_buffer<TContainer>::
 rhere() const
 {
-  return const_reverse_iterator(after.rend()-1, false, after.rend(),
-				before.rbegin());
+  return const_cast<gap_buffer<TContainer>&>(*this).rhere();
 }
 
 
@@ -328,7 +327,7 @@ typename gap_buffer<TContainer>::const_iterator
 gap_buffer<TContainer>::
 begin() const
 {
-  return const_iterator(before.begin(), true, before.end(), after.begin());
+  return const_cast<gap_buffer<TContainer>& >(*this).begin();
 }
 
 template<class TContainer>
@@ -344,7 +343,7 @@ typename gap_buffer<TContainer>::const_iterator
 gap_buffer<TContainer>::
 end() const
 {
-  return const_iterator(after.end(), false, before.end(), after.begin());
+  return const_cast<gap_buffer<TContainer>& >(*this).end();
 }
 
 
@@ -363,8 +362,7 @@ typename gap_buffer<TContainer>::const_reverse_iterator
 gap_buffer<TContainer>::
 rbegin() const
 {
-  return const_reverse_iterator(after.rbegin(), true, after.rend(), 
-				before.rbegin());
+  return const_cast<gap_buffer<TContainer>&>(*this).rbegin();
 }
 
 template<class TContainer>
