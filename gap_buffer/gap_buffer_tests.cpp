@@ -106,6 +106,54 @@ void assert_properties_empty(TGapBuffer & buf)
   BOOST_CHECK_EQUAL( buf.position(), 0u ); // It has position 0
 }
 
+// Assert that a gap buffer is nonempty and check the properties of that
+template<class TGapBuffer>
+void assert_properties_nonempty(TGapBuffer & buf)
+{
+  const TGapBuffer & buf_const = buf;
+  BOOST_CHECK( !buf.empty() );
+  BOOST_CHECK( (buf != TGapBuffer()) );
+  BOOST_CHECK_NE( buf.size(), 0 );
+
+  BOOST_CHECK( buf.begin() != buf.end() );
+  BOOST_CHECK( buf_const.begin() != buf_const.end() );
+  BOOST_CHECK( buf.rbegin() != buf.rend() );
+  BOOST_CHECK( buf_const.rbegin() != buf_const.rend() );
+
+  BOOST_CHECK( buf.begin() != buf_const.end() );
+  BOOST_CHECK( buf_const.begin() != buf.end() );
+  BOOST_CHECK( buf.rbegin() != buf_const.rend() );
+  BOOST_CHECK( buf_const.rbegin() != buf.rend() );
+  
+  // (end - begin) > 0
+  BOOST_CHECK_GT( (std::distance(buf.begin(), buf.end())),
+		  0 );
+  BOOST_CHECK_GT( (std::distance(buf_const.begin(), buf_const.end())),
+		  0 );
+
+  // (rend - rbegin) > 0
+  BOOST_CHECK_GT( (std::distance(buf.rbegin(), buf.rend())),
+		  0 );
+  BOOST_CHECK_GT( (std::distance(buf_const.rbegin(), buf_const.rend())),
+		  0 );
+
+  // (here - begin) + (end - here) > 0
+  BOOST_CHECK_GT( (std::distance(buf.begin(), buf.here()) +
+		   std::distance(buf.here(), buf.end())),
+		  0 );
+  BOOST_CHECK_GT( (std::distance(buf_const.begin(), buf_const.here()) +
+		   std::distance(buf_const.here(), buf_const.end())),
+		  0 );
+
+  // (rhere - rbegin) + (rend - rhere) > 0
+  BOOST_CHECK_GT( (std::distance(buf.rbegin(), buf.rhere()) +
+		   std::distance(buf.rhere(), buf.rend())),
+		  0 );
+  BOOST_CHECK_GT( (std::distance(buf_const.rbegin(), buf_const.rhere()) +
+		   std::distance(buf_const.rhere(), buf_const.rend())),
+		  0 );
+}
+
 template<class TGapBuffer>
 void assert_position_end(TGapBuffer & buf)
 {
@@ -210,6 +258,18 @@ BOOST_AUTO_TEST_CASE(size)
   // Demonstrate that removing 2 elements lowers the size by 2
   default_constructed.erase(-2);
   assert_properties_size( default_constructed, 3 );
+}
+
+BOOST_AUTO_TEST_CASE(empty)
+{
+  buffer_t buffer;
+  assert_properties_empty( buffer );
+
+  buffer.insert(buffer.end(), 1, '\n');
+  assert_properties_nonempty( buffer );
+
+  buffer.clear();
+  assert_properties_empty( buffer );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
