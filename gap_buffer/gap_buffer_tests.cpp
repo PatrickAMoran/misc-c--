@@ -10,6 +10,7 @@
 #include <list>
 #include <vector>
 #include <iterator>
+#include <string>
 
 // First, our static assertions
 struct Concept_Checks
@@ -270,6 +271,42 @@ BOOST_AUTO_TEST_CASE(empty)
 
   buffer.clear();
   assert_properties_empty( buffer );
+}
+
+
+// ----- ----- ------ Swapping ----- ----- -----
+BOOST_AUTO_TEST_CASE(swap)
+{
+  std::string const strA("this is the first test buffer");
+  std::string const strB("the second test buffer am I");
+
+  buffer_t bufferA(strA.begin(), strA.end());
+  buffer_t bufferB(strB.begin(), strB.end());
+  
+  bufferA.advance(-7);
+  size_t const positionA = bufferA.position();
+
+  bufferB.advance(-2);
+  size_t const positionB = bufferB.position();
+
+  BOOST_REQUIRE( seq_eq(bufferA, strA) );
+  BOOST_REQUIRE( seq_eq(bufferB, strB) );
+  BOOST_REQUIRE_EQUAL( bufferA.position(), positionA );
+  BOOST_REQUIRE_EQUAL( bufferB.position(), positionB );
+
+  bufferA.swap( bufferB );
+
+  BOOST_CHECK( seq_eq(bufferA, strB) );
+  BOOST_CHECK( seq_eq(bufferB, strA) );
+  BOOST_CHECK_EQUAL( bufferA.position(), positionB );
+  BOOST_CHECK_EQUAL( bufferB.position(), positionA );
+
+  bufferB.swap( bufferA );
+
+  BOOST_CHECK( seq_eq(bufferA, strA) );
+  BOOST_CHECK( seq_eq(bufferB, strB) );
+  BOOST_CHECK_EQUAL( bufferA.position(), positionA );
+  BOOST_CHECK_EQUAL( bufferB.position(), positionB );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
