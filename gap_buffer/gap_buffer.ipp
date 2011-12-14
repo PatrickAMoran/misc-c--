@@ -302,7 +302,10 @@ typename gap_buffer<TContainer>::reverse_iterator
 gap_buffer<TContainer>::
 rhere()
 {
-  return reverse_iterator(after.rend()-1, false, after.rend(), before.rbegin());
+  if(!after.empty())
+    return reverse_iterator(after.rend()-1, false, after.rend(), before.rbegin());
+  else
+    return reverse_iterator(before.rbegin(), true, after.rend(), before.rbegin());
 }
 
 template<class TContainer>
@@ -319,7 +322,10 @@ typename gap_buffer<TContainer>::iterator
 gap_buffer<TContainer>::
 begin()
 {
-  return iterator(before.begin(), true, before.end(), after.begin());
+  if(before.empty())
+    return iterator(after.begin(), false, before.end(), after.begin());
+  else
+    return iterator(before.begin(), true, before.end(), after.begin());
 }
 
 template<class TContainer>
@@ -354,7 +360,10 @@ typename gap_buffer<TContainer>::reverse_iterator
 gap_buffer<TContainer>::
 rbegin()
 {
-  return reverse_iterator(after.rbegin(), true, after.rend(), before.rbegin());
+  if(after.empty())
+    return reverse_iterator(before.rbegin(), false, after.rend(), before.rbegin());
+  else
+    return reverse_iterator(after.rbegin(), true, after.rend(), before.rbegin());
 }
 
 template<class TContainer>
