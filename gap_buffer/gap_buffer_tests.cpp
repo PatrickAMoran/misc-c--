@@ -49,6 +49,53 @@ bool seq_eq(TSeqA const & a, TSeqB const & b)
 }
 
 
+
+// Assert that a gap buffer is empty and check the properties of that
+template<class TGapBuffer>
+void assert_properties_size(TGapBuffer & buf, size_t len)
+{
+  const TGapBuffer & buf_const = buf;
+  BOOST_CHECK_EQUAL( buf.empty(), !len );
+  BOOST_CHECK_EQUAL( (buf == TGapBuffer()), !len );
+  BOOST_CHECK_EQUAL( buf.size(), len );
+  BOOST_CHECK( advance_copy(buf.begin(), len) == buf.end() );
+  BOOST_CHECK( advance_copy(buf.rbegin(), len) == buf.rend() );
+  BOOST_CHECK( advance_copy(buf_const.begin(), len)  == buf_const.end() );
+  BOOST_CHECK( advance_copy(buf_const.rbegin(), len) == buf_const.rend() );
+  BOOST_CHECK( advance_copy(buf_const.begin(), len) == buf.end() );
+  BOOST_CHECK( advance_copy(buf.begin(), len) == buf_const.end() );
+  BOOST_CHECK( advance_copy(buf_const.rbegin(), len) == buf.rend() );
+  BOOST_CHECK( advance_copy(buf.rbegin(), len) == buf_const.rend() );
+  
+  // (end - begin) == size
+  BOOST_CHECK_EQUAL( (std::distance(buf.begin(), buf.end())),
+		     len );
+  BOOST_CHECK_EQUAL( (std::distance(buf_const.begin(), buf_const.end())),
+		     len );
+
+  // (rend - rbegin) == size
+  BOOST_CHECK_EQUAL( (std::distance(buf.rbegin(), buf.rend())),
+		     len );
+  BOOST_CHECK_EQUAL( (std::distance(buf_const.rbegin(), buf_const.rend())),
+		     len );
+
+  // (here - begin) + (end - here) == size
+  BOOST_CHECK_EQUAL( (std::distance(buf.begin(), buf.here()) +
+		      std::distance(buf.here(), buf.end())),
+		     len );
+  BOOST_CHECK_EQUAL( (std::distance(buf_const.begin(), buf_const.here()) +
+		      std::distance(buf_const.here(), buf_const.end())),
+		     len );
+
+  // (rhere - rbegin) + (rend - rhere) == size
+  BOOST_CHECK_EQUAL( (std::distance(buf.rbegin(), buf.rhere()) +
+		      std::distance(buf.rhere(), buf.rend())),
+		     len );
+  BOOST_CHECK_EQUAL( (std::distance(buf_const.rbegin(), buf_const.rhere()) +
+		      std::distance(buf_const.rhere(), buf_const.rend())),
+		     len );
+}
+
 // ----- ----- ------ Constructors ----- ----- -----
 
 BOOST_AUTO_TEST_CASE(default_constructor)
