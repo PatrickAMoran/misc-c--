@@ -129,7 +129,7 @@ public:
 		      TUnderlying aft_beg)
     : iterator_impl<TUnderlying>(here, is_before, bef_end, aft_beg)
   {}
-  
+
 private:
   // Grant access to Boost.Iterator
   friend class boost::iterator_core_access;
@@ -156,7 +156,13 @@ public:
 			 TUnderlying aft_beg)
     : iterator_impl<TUnderlying>(here, is_before, bef_end, aft_beg)
   {}
-  
+
+  operator TConstIter() const
+  {
+    return TConstIter(this->location, this->is_before,
+		      this->before_end, this->after_begin);
+  }
+
 private:
   // Grant access to Boost.Iterator
   friend class boost::iterator_core_access;
@@ -165,12 +171,6 @@ private:
   reference dereference() const
   {
     return *this->location;
-  }
-
-  operator TConstIter() const
-  {
-    return TConstIter(this->location, this->is_before,
-		      this->before_end, this->after_begin);
   }
 };
 
