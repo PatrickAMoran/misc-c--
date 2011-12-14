@@ -9,6 +9,7 @@
 #include <deque>
 #include <list>
 #include <vector>
+#include <iterator>
 
 // First, our static assertions
 struct Concept_Checks
@@ -28,9 +29,29 @@ struct Concept_Checks
 
 BOOST_AUTO_TEST_SUITE(gap_buffer_tests)
 
-BOOST_AUTO_TEST_CASE(constructors)
-{
+typedef gap_buffer<std::deque<char> > buffer_t;
 
+
+template<class TIter>
+TIter advance_copy(TIter const & iter, size_t n)
+{
+  TIter rtn = iter;
+  std::advance(rtn, n);
+  return rtn;
 }
 
+template<class TSeqA, class TSeqB>
+bool seq_eq(TSeqA const & a, TSeqB const & b)
+{
+  return std::mismatch( a.begin(), a.end(),
+			b.begin() ) ==
+    std::make_pair(a.end(), b.end());
+}
+
+
+// ----- ----- ------ Constructors ----- ----- -----
+
+BOOST_AUTO_TEST_CASE(default_constructor)
+{
+}
 BOOST_AUTO_TEST_SUITE_END()
