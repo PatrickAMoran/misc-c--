@@ -549,7 +549,7 @@ operator==(gap_buffer<TContainer> const & lhs,
 	   gap_buffer<TContainer> const & rhs)
 {
   return (lhs.size() == rhs.size()) && 
-    std::mismatch(lhs.begin(), lhs.end(), rhs.begin()) == rhs.end();
+    (std::mismatch(lhs.begin(), lhs.end(), rhs.begin()).first == lhs.end());
 }
 template<class TContainer>
 bool
