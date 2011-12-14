@@ -309,4 +309,13 @@ BOOST_AUTO_TEST_CASE(swap)
   BOOST_CHECK_EQUAL( bufferB.position(), positionB );
 }
 
+//@todo Exercise the iterators a great deal
+//@todo front(), front() const
+//@todo insert(position, elem), insert(position, n, elem), insert(position, iter, iter)
+//@todo erase(iter), erase(iter, iter)
+//@todo clear()
+//@todo resize(n)
+//@todo operators =, ==, !=, <, <=, >, >=
+//@todo insert(elem), erase(int), advance(dist), position(), insert(range)
+
 BOOST_AUTO_TEST_SUITE_END()
