@@ -178,4 +178,38 @@ BOOST_AUTO_TEST_CASE(iter_pair_constructor)
   assert_position_end( iterator_constructed );
 }
 
+// ----- ----- ------ Size Reporting ----- ----- -----
+/*
+  The meaning of size_type max_size() const is not really clear.  What is clear
+  is that for a container adapter, it can only be reasonably defined in terms of
+  its adapted container.  It is not tested here because I haven't yet found a way
+  of exposing it to the unit tests, and I doubt if this member function is
+  actually of any use.
+*/
+
+BOOST_AUTO_TEST_CASE(size)
+{
+  buffer_t default_constructed;
+  
+  BOOST_CHECK_EQUAL( default_constructed.size(), 0 );
+
+  // Demonstrate that inserting a single element raises the size by 1
+  default_constructed.insert(' ');
+  assert_properties_size( default_constructed, 1 );
+
+  // Demonstrate that moving the cursor does not change the size
+  default_constructed.advance(-1);
+  assert_properties_size( default_constructed, 1 );
+  default_constructed.advance(1);
+  assert_properties_size( default_constructed, 1 );
+
+  // Demonstrate that inserting 4 elements raises the size by 4
+  default_constructed.insert(default_constructed.begin(), 4, 'a');
+  assert_properties_size( default_constructed, 5 );
+
+  // Demonstrate that removing 2 elements lowers the size by 2
+  default_constructed.erase(-2);
+  assert_properties_size( default_constructed, 3 );
+}
+
 BOOST_AUTO_TEST_SUITE_END()
