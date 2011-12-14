@@ -96,6 +96,15 @@ void assert_properties_size(TGapBuffer & buf, size_t len)
 		     len );
 }
 
+
+// Assert that a gap buffer is empty and check the properties of that
+template<class TGapBuffer>
+void assert_properties_empty(TGapBuffer & buf)
+{
+  assert_properties_size(buf, 0);
+  // Check consequences of being empty
+  BOOST_CHECK_EQUAL( buf.position(), 0u ); // It has position 0
+}
 // ----- ----- ------ Constructors ----- ----- -----
 
 BOOST_AUTO_TEST_CASE(default_constructor)
