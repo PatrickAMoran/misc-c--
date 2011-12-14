@@ -105,6 +105,16 @@ void assert_properties_empty(TGapBuffer & buf)
   // Check consequences of being empty
   BOOST_CHECK_EQUAL( buf.position(), 0u ); // It has position 0
 }
+
+template<class TGapBuffer>
+void assert_position_end(TGapBuffer & buf)
+{
+  // Demonstrate that the cursor is at the end
+  BOOST_CHECK_EQUAL( buf.position(), buf.size() );
+  BOOST_CHECK( buf.here() == buf.end() );
+  BOOST_CHECK( buf.rhere() == buf.rbegin() );
+}
+
 // ----- ----- ------ Constructors ----- ----- -----
 
 BOOST_AUTO_TEST_CASE(default_constructor)
