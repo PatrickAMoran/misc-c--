@@ -309,6 +309,180 @@ BOOST_AUTO_TEST_CASE(swap)
   BOOST_CHECK_EQUAL( bufferB.position(), positionB );
 }
 
+
+// ----- ----- ------ Cursor Manipulation ----- ----- -----
+BOOST_AUTO_TEST_CASE(advance)
+{
+  std::string const strA("this is the first test buffer");
+  buffer_t buffer(strA.begin(), strA.end());
+
+  size_t const position_1 = buffer.position();
+
+  // Assert that advancing 0 does nothing
+  buffer.advance(0);
+  BOOST_CHECK_EQUAL(buffer.position(), position_1);
+
+  // Assert that moving backwards does work
+  buffer.advance(-3);
+  size_t const position_2 = position_1 - 3;
+  BOOST_CHECK_EQUAL(buffer.position(), position_2);
+
+  // Assert that moving forwards does work
+  buffer.advance(1);
+  size_t const position_3 = position_2 + 1;
+  BOOST_CHECK_EQUAL(buffer.position(), position_3);
+}
+
+
+BOOST_AUTO_TEST_CASE(position)
+{
+  std::string const strA("this is the first test buffer");
+
+  buffer_t buffer(strA.begin(), strA.end());
+  assert_position_end( buffer );
+  size_t base_position = buffer.size();
+
+  { // ----- Advance
+    buffer.advance(-10);
+    base_position -= 10;
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    buffer.advance(1);
+    base_position += 1;
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    buffer.advance(0);
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+  }
+
+  { // ----- At cursor insert
+    // Assert that the at-cursor insert moves the cursor along
+    std::string const add_string("fizbuzz");
+    base_position += add_string.length();
+    buffer.insert(add_string);
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    // Assert that the at-cursor insert moves the cursor along
+    base_position += 1;
+    buffer.insert('z');
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+  }
+
+  { // ----- At cursor erase
+    // Assert that the at-cursor erase ahead of the cursor does not move it
+    buffer.erase(2);
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    // Assert that a null at-cursor erase does not move the cursor
+    buffer.erase(0);
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+  
+    // Assert that an at-cursor erase backwards moves the cursor back
+    buffer.erase(-2);
+    base_position -= 2;
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+  }
+
+  { // ----- Other inserts
+    std::string const insert_str("insert");
+
+    // Assert that inserting data at the cursor moves it forward
+    base_position += 1;
+    buffer.insert(buffer.here(), 'x');
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+    base_position += 2;
+    buffer.insert(buffer.here(), 2, 'x');
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    base_position += insert_str.length();
+    buffer.insert(buffer.here(), insert_str.begin(), insert_str.end());
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    // Assert that inserting data after the cursor does not
+    buffer.insert(buffer.here() + 1, 3, 'b');
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+    buffer.insert(buffer.here() + 1, 'b');
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+    buffer.insert(buffer.here() + 1, insert_str.begin(), insert_str.end());
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    // Assert that inserting data before the cursor moves it
+    buffer.insert(buffer.begin(), 3, 'b');
+    base_position += 3;
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    buffer.insert(buffer.begin(), 'b');
+    base_position += 1;
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+
+    base_position += insert_str.length();
+    buffer.insert(buffer.begin(), insert_str.begin(), insert_str.end());
+    BOOST_CHECK_EQUAL(buffer.position(), base_position);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(insert_elem_at_cursor)
+{
+  std::string const strA("this is the first test buffer");
+  buffer_t buffer(strA.begin(), strA.end());
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() );
+  buffer.advance(-10);
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() );
+
+  buffer.insert('T');
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() + 1);
+
+  std::string const strB("this is the first tTest buffer");
+  BOOST_CHECK( seq_eq(strB, buffer) );
+
+  buffer.insert('U');
+  std::string const strC("this is the first tTUest buffer");
+  BOOST_CHECK( seq_eq(strC, buffer) );
+}
+
+
+BOOST_AUTO_TEST_CASE(insert_range_at_cursor)
+{
+  std::string const strA("this is the first test buffer");
+  buffer_t buffer(strA.begin(), strA.end());
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() );
+  buffer.advance(-10);
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() );
+
+  std::string const insA("T");
+  buffer.insert(insA);
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() + insA.size());
+
+  std::string const strB("this is the first tTest buffer");
+  BOOST_CHECK( seq_eq(strB, buffer) );
+
+  std::string const insB("UV");
+  buffer.insert(insB);
+  std::string const strC("this is the first tTUVest buffer");
+  BOOST_CHECK( seq_eq(strC, buffer) );
+}
+
+
+BOOST_AUTO_TEST_CASE(erase_elem_at_cursor)
+{
+  std::string const strA("this is the first test buffer");
+  buffer_t buffer(strA.begin(), strA.end());
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size());
+  buffer.advance(-10);
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() );
+
+  buffer.erase(1);
+  BOOST_CHECK_EQUAL(buffer.size(), strA.size() - 1);
+
+  std::string const strB("this is the first tst buffer");
+  BOOST_CHECK( seq_eq(strB, buffer) );
+
+  buffer.erase(-5);
+  std::string const strC("this is the fist buffer");
+  BOOST_CHECK( seq_eq(strC, buffer) );
+}
+
+
 //@todo Exercise the iterators a great deal
 //@todo front(), front() const
 //@todo insert(position, elem), insert(position, n, elem), insert(position, iter, iter)
@@ -316,6 +490,5 @@ BOOST_AUTO_TEST_CASE(swap)
 //@todo clear()
 //@todo resize(n)
 //@todo operators =, ==, !=, <, <=, >, >=
-//@todo insert(elem), erase(int), advance(dist), position(), insert(range)
 
 BOOST_AUTO_TEST_SUITE_END()
