@@ -572,11 +572,19 @@ bool
 operator<=(gap_buffer<TContainer> const & lhs, 
 	   gap_buffer<TContainer> const & rhs)
 {
-  return
-    std::lexicographical_compare(lhs.begin(), lhs.end(), 
-				 rhs.begin(), rhs.end(),
-				 std::less_equal<
-				   typename TContainer::value_type>());
+  typename gap_buffer<TContainer>::const_iterator const left_end =
+    ((lhs.size() > rhs.size()) ?
+     lhs.begin() + rhs.size()  :
+     lhs.end());
+
+  std::pair<typename gap_buffer<TContainer>::const_iterator,
+	    typename gap_buffer<TContainer>::const_iterator> rtn =
+    std::mismatch(lhs.begin(), left_end, rhs.begin());
+
+  if(rtn.first == left_end)
+    return (lhs.size() <= rhs.size());
+  else
+    return (*rtn.first < *rtn.second);
 }
 
 template<class TContainer>
