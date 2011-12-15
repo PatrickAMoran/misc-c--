@@ -482,6 +482,149 @@ BOOST_AUTO_TEST_CASE(erase_elem_at_cursor)
   BOOST_CHECK( seq_eq(strC, buffer) );
 }
 
+// ----- ----- ------ Operators ----- ----- -----
+BOOST_AUTO_TEST_CASE(compare_operators)
+{
+  std::string const strA("Something to compare against");
+  std::string const strB("Something else to compare against");
+  std::string const strC("HAHAHAHAHA");
+
+  buffer_t const bufferA(strA.begin(), strA.end());
+  buffer_t const bufferB(strB.begin(), strB.end());
+  buffer_t const bufferC(strC.begin(), strC.end());
+  buffer_t bufferD(strA.begin(), strA.end());
+
+  // Assert that two gap buffers always equal each other
+  BOOST_CHECK( bufferA == bufferA );
+  BOOST_CHECK( bufferB == bufferB );
+  BOOST_CHECK( bufferC == bufferC );
+  BOOST_CHECK( bufferD == bufferD );
+  // Check that A == D
+  BOOST_CHECK( bufferA == bufferD );
+
+  // Assert that != equates to !(==)
+  BOOST_CHECK( !(bufferA != bufferA) );
+  BOOST_CHECK( !(bufferB != bufferB) );
+  BOOST_CHECK( !(bufferC != bufferC) );
+  BOOST_CHECK( !(bufferD != bufferD) );
+  BOOST_CHECK( !(bufferA != bufferD) );
+
+  // Assert that == implies !<
+  BOOST_CHECK( !(bufferA < bufferA) );
+  BOOST_CHECK( !(bufferB < bufferB) );
+  BOOST_CHECK( !(bufferC < bufferC) );
+  BOOST_CHECK( !(bufferD < bufferD) );
+  BOOST_CHECK( !(bufferA < bufferD) );
+
+  // Assert that == implies !>
+  BOOST_CHECK( !(bufferA > bufferA) );
+  BOOST_CHECK( !(bufferB > bufferB) );
+  BOOST_CHECK( !(bufferC > bufferC) );
+  BOOST_CHECK( !(bufferD > bufferD) );
+  BOOST_CHECK( !(bufferA > bufferD) );
+
+  // Assert that == implies <=
+  BOOST_CHECK( bufferA <= bufferA );
+  BOOST_CHECK( bufferB <= bufferB );
+  BOOST_CHECK( bufferC <= bufferC );
+  BOOST_CHECK( bufferD <= bufferD );
+  BOOST_CHECK( bufferA <= bufferD );
+
+  // Assert that == implies >=
+  BOOST_CHECK( bufferA >= bufferA );
+  BOOST_CHECK( bufferB >= bufferB );
+  BOOST_CHECK( bufferC >= bufferC );
+  BOOST_CHECK( bufferD >= bufferD );
+  BOOST_CHECK( bufferA >= bufferD );
+
+  // Assert that position is ignored
+  bufferD.advance(-4);
+  BOOST_CHECK( bufferA == bufferD );
+  BOOST_CHECK( !(bufferA != bufferD) );
+
+  // Check the ordering
+  BOOST_CHECK_EQUAL( (bufferA < bufferA),
+		     (strA < strA) );
+  BOOST_CHECK_EQUAL( (bufferB < bufferB),
+		     (strB < strB) );
+  BOOST_CHECK_EQUAL( (bufferC < bufferC),
+		     (strC < strC) );
+  BOOST_CHECK_EQUAL( (bufferA > bufferA),
+		     (strA > strA) );
+  BOOST_CHECK_EQUAL( (bufferB > bufferB),
+		     (strB > strB) );
+  BOOST_CHECK_EQUAL( (bufferC > bufferC),
+		     (strC > strC) );
+
+  BOOST_CHECK_EQUAL( (bufferA <= bufferA),
+		     (strA <= strA) );
+  BOOST_CHECK_EQUAL( (bufferB <= bufferB),
+		     (strB <= strB) );
+  BOOST_CHECK_EQUAL( (bufferC <= bufferC),
+		     (strC <= strC) );
+  BOOST_CHECK_EQUAL( (bufferA >= bufferA),
+		     (strA >= strA) );
+  BOOST_CHECK_EQUAL( (bufferB >= bufferB),
+		     (strB >= strB) );
+  BOOST_CHECK_EQUAL( (bufferC >= bufferC),
+		     (strC >= strC) );
+
+  BOOST_CHECK_EQUAL( (bufferA < bufferB),
+		     (strA < strB) );
+  BOOST_CHECK_EQUAL( (bufferB < bufferC),
+		     (strB < strC) );
+  BOOST_CHECK_EQUAL( (bufferA < bufferC),
+		     (strA < strC) );
+  BOOST_CHECK_EQUAL( (bufferA > bufferB),
+		     (strA > strB) );
+  BOOST_CHECK_EQUAL( (bufferB > bufferC),
+		     (strB > strC) );
+  BOOST_CHECK_EQUAL( (bufferA > bufferC),
+		     (strA > strC) );
+
+  BOOST_CHECK_EQUAL( (bufferA <= bufferB),
+		     (strA <= strB) );
+  BOOST_CHECK_EQUAL( (bufferB <= bufferC),
+		     (strB <= strC) );
+  BOOST_CHECK_EQUAL( (bufferA <= bufferC),
+		     (strA <= strC) );
+  BOOST_CHECK_EQUAL( (bufferA >= bufferB),
+		     (strA >= strB) );
+  BOOST_CHECK_EQUAL( (bufferB >= bufferC),
+		     (strB >= strC) );
+  BOOST_CHECK_EQUAL( (bufferA >= bufferC),
+		     (strA >= strC) );
+}
+
+BOOST_AUTO_TEST_CASE(assign_operator)
+{
+  std::string const strA("Something to compare against");
+  std::string const strB("Something else to compare against");
+
+  buffer_t bufferA(strA.begin(), strA.end());
+  buffer_t bufferB(strB.begin(), strB.end());
+  buffer_t bufferC;
+
+  BOOST_CHECK( bufferA != bufferB );
+  BOOST_CHECK( bufferA != bufferC );
+  BOOST_CHECK( bufferB != bufferC );
+
+  bufferC = bufferA;
+  BOOST_CHECK( bufferA != bufferB );
+  BOOST_CHECK( bufferA == bufferC );
+  BOOST_CHECK( bufferB != bufferC );
+
+  bufferA = bufferB;
+  BOOST_CHECK( bufferA == bufferB );
+  BOOST_CHECK( bufferA != bufferC );
+  BOOST_CHECK( bufferB != bufferC );
+
+  bufferB = bufferC;
+  BOOST_CHECK( bufferA != bufferB );
+  BOOST_CHECK( bufferA != bufferC );
+  BOOST_CHECK( bufferB == bufferC );
+}
+
 
 //@todo Exercise the iterators a great deal
 //@todo front(), front() const
@@ -489,6 +632,5 @@ BOOST_AUTO_TEST_CASE(erase_elem_at_cursor)
 //@todo erase(iter), erase(iter, iter)
 //@todo clear()
 //@todo resize(n)
-//@todo operators =, ==, !=, <, <=, >, >=
 
 BOOST_AUTO_TEST_SUITE_END()
