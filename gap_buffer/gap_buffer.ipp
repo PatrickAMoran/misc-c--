@@ -89,16 +89,28 @@ protected:
     --location;
   }
   // Advance the iterator, as a callback to Boost.Iterator
-  void advance(size_type n)
+  void advance(difference_type n)
   {
-    if(is_before){
-      size_type const dist = distance(location, before_end);
-      if(dist <= n){
-	n -= dist;
-	location = after_begin;
+    if(n > 0){
+      if(is_before){
+	size_type const dist = std::distance(location, before_end);
+	if(dist <= n){
+	  n -= dist;
+	  location = after_begin;
+	}
+      }
+    }else{
+      if(!is_before){
+	size_type const dist = std::distance(after_begin, location);
+	if(dist <= -n){
+	  n += dist;
+	  location = before_end;
+	}
       }
     }
     std::advance(location, n);
+    if(location == before_end)
+      location = after_begin;
   }
   // Measure distance between to iterators as callback to Boost.Iterator
   difference_type distance_to(iterator_impl const & other) const
