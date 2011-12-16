@@ -164,6 +164,12 @@ void assert_position_end(TGapBuffer & buf)
   BOOST_CHECK( buf.rhere() == buf.rbegin() );
 }
 
+typedef buffer_t::iterator                 iterator;
+typedef buffer_t::const_iterator           const_iterator;
+typedef buffer_t::reverse_iterator         reverse_iterator;
+typedef buffer_t::const_reverse_iterator   const_reverse_iterator;
+
+
 // ----- ----- ------ Constructors ----- ----- -----
 
 BOOST_AUTO_TEST_CASE(default_constructor)
@@ -626,7 +632,111 @@ BOOST_AUTO_TEST_CASE(assign_operator)
 }
 
 
-//@todo Exercise the iterators a great deal
+// ----- ----- ------ Iterators ----- ----- -----
+BOOST_AUTO_TEST_CASE(iterator_comparisons)
+{
+  std::string const str("Some data to iterate over");
+
+  buffer_t buffer(str.begin(), str.end());
+  buffer_t const & cbuffer = buffer;
+
+  { // Assert that we can compare iterators and const_iterators
+    iterator iter        = buffer.begin();
+    const_iterator citer = cbuffer.begin();
+
+    BOOST_CHECK(  (iter == citer) );
+    BOOST_CHECK( !(iter != citer) );
+    BOOST_CHECK( !(iter >  citer) );
+    BOOST_CHECK( !(iter <  citer) );
+    BOOST_CHECK(  (iter >= citer) );
+    BOOST_CHECK(  (iter <= citer) );
+
+    ++iter;
+    BOOST_CHECK( !(iter == citer) );
+    BOOST_CHECK(  (iter != citer) );
+    BOOST_CHECK(  (iter >  citer) );
+    BOOST_CHECK( !(iter <  citer) );
+    BOOST_CHECK(  (iter >= citer) );
+    BOOST_CHECK( !(iter <= citer) );
+
+    ++citer;
+    BOOST_CHECK(  (iter == citer) );
+    BOOST_CHECK( !(iter != citer) );
+    BOOST_CHECK( !(iter >  citer) );
+    BOOST_CHECK( !(iter <  citer) );
+    BOOST_CHECK(  (iter >= citer) );
+    BOOST_CHECK(  (iter <= citer) );
+
+    ++citer;
+    BOOST_CHECK( !(iter == citer) );
+    BOOST_CHECK(  (iter != citer) );
+    BOOST_CHECK( !(iter >  citer) );
+    BOOST_CHECK(  (iter <  citer) );
+    BOOST_CHECK( !(iter >= citer) );
+    BOOST_CHECK(  (iter <= citer) );
+  }
+
+  { // Assert that we can compare iterators and const_iterators
+    reverse_iterator riter        = buffer.rbegin();
+    const_reverse_iterator rciter = cbuffer.rbegin();
+
+    BOOST_CHECK(  (riter == rciter) );
+    BOOST_CHECK( !(riter != rciter) );
+    BOOST_CHECK( !(riter >  rciter) );
+    BOOST_CHECK( !(riter <  rciter) );
+    BOOST_CHECK(  (riter >= rciter) );
+    BOOST_CHECK(  (riter <= rciter) );
+
+    ++riter;
+    BOOST_CHECK( !(riter == rciter) );
+    BOOST_CHECK(  (riter != rciter) );
+    BOOST_CHECK(  (riter >  rciter) );
+    BOOST_CHECK( !(riter <  rciter) );
+    BOOST_CHECK(  (riter >= rciter) );
+    BOOST_CHECK( !(riter <= rciter) );
+
+    ++rciter;
+    BOOST_CHECK(  (riter == rciter) );
+    BOOST_CHECK( !(riter != rciter) );
+    BOOST_CHECK( !(riter >  rciter) );
+    BOOST_CHECK( !(riter <  rciter) );
+    BOOST_CHECK(  (riter >= rciter) );
+    BOOST_CHECK(  (riter <= rciter) );
+
+    ++rciter;
+    BOOST_CHECK( !(riter == rciter) );
+    BOOST_CHECK(  (riter != rciter) );
+    BOOST_CHECK( !(riter >  rciter) );
+    BOOST_CHECK(  (riter <  rciter) );
+    BOOST_CHECK( !(riter >= rciter) );
+    BOOST_CHECK(  (riter <= rciter) );
+  }
+}
+
+BOOST_AUTO_TEST_CASE(iterator_movement)
+{
+  std::string const str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+  buffer_t const & cbuffer = buffer;
+
+  iterator iter = buffer.end();
+  const_iterator citer = buffer.end();
+  BOOST_CHECK(  (iter == citer) );
+
+  --iter;
+  BOOST_CHECK_EQUAL(*iter, 'r');
+  --iter;
+  BOOST_CHECK_EQUAL(*iter, 'e');
+  --iter;
+  BOOST_CHECK_EQUAL(*iter, 'v');
+  --iter;
+  BOOST_CHECK_EQUAL(*iter, 'o');
+
+  citer = citer - 4;
+  BOOST_CHECK(  (iter == citer) );
+}
+
+
 //@todo front(), front() const
 //@todo insert(position, elem), insert(position, n, elem), insert(position, iter, iter)
 //@todo erase(iter), erase(iter, iter)
