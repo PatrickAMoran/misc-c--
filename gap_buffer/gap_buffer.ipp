@@ -84,8 +84,10 @@ protected:
   // Decrement the iterator, as a callback to Boost.Iterator
   void decrement()
   {
-    if(!is_before && location == after_begin)
+    if(!is_before && location == after_begin){
       location = before_end;
+      is_before = true;
+    }
     --location;
   }
   // Advance the iterator, as a callback to Boost.Iterator
