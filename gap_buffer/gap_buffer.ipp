@@ -54,9 +54,16 @@ public:
     , before_end(bef_end)
     , after_begin(aft_beg)
   {}
-protected:
-  struct Incomplete_Type;
+private:
+  void normalize()
+  {
+    if(is_before && location == before_end){
+      location = after_begin;
+      is_before = false;
+    }
+  }
 
+protected:
   // Grant access to Boost.Iterator
   friend class boost::iterator_core_access;
   // If the \a location iterator belongs to the before container of the
@@ -72,14 +79,15 @@ protected:
   // Compare the iterator for equality, as a callback to Boost.Iterator
   bool equal(iterator_impl const & other) const
   {
-    return location==other.location;
+    
+    return (is_before == other.is_before) && location==other.location;
   }
   // Increment the iterator, as a callback to Boost.Iterator
   void increment()
   {
+    normalize();
     ++location;
-    if(is_before && location == before_end)
-      location = after_begin;
+    normalize();
   }
   // Decrement the iterator, as a callback to Boost.Iterator
   void decrement()
@@ -89,6 +97,7 @@ protected:
       is_before = true;
     }
     --location;
+    normalize();
   }
   // Advance the iterator, as a callback to Boost.Iterator
   void advance(difference_type n)
@@ -99,6 +108,7 @@ protected:
 	if(dist <= n){
 	  n -= dist;
 	  location = after_begin;
+	  is_before = false;
 	}
       }
     }else{
@@ -107,12 +117,12 @@ protected:
 	if(dist <= -n){
 	  n += dist;
 	  location = before_end;
+	  is_before = true;
 	}
       }
     }
     std::advance(location, n);
-    if(location == before_end)
-      location = after_begin;
+    normalize();
   }
   // Measure distance between to iterators as callback to Boost.Iterator
   difference_type distance_to(iterator_impl const & other) const
@@ -317,9 +327,9 @@ gap_buffer<TContainer>::
 rhere()
 {
   if(!after.empty())
-    return reverse_iterator(after.rend()-1, false, after.rend(), before.rbegin());
+    return reverse_iterator(after.rend()-1, true, after.rend(), before.rbegin());
   else
-    return reverse_iterator(before.rbegin(), true, after.rend(), before.rbegin());
+    return reverse_iterator(before.rbegin(), false, after.rend(), before.rbegin());
 }
 
 template<class TContainer>
