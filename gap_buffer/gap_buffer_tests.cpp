@@ -750,6 +750,8 @@ BOOST_AUTO_TEST_CASE(iterator_movement)
   BOOST_CHECK(  (iter == citer) );
 }
 
+
+// ----- ----- ------ Inserting With Iterators ----- ----- -----
 BOOST_AUTO_TEST_CASE(insert_at_iter)
 {
   std::string str("Some data to iterate over");
@@ -881,8 +883,95 @@ BOOST_AUTO_TEST_CASE(insert_range_at_iter)
 }
 
 
+
+// ----- ----- ------ Erasing With Iterators ----- ----- -----
+BOOST_AUTO_TEST_CASE(erase_elem_iter)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+  buffer.advance(-10);
+  size_t position = buffer.position();
+
+  // Assert that erasing from the front does what we expect
+  buffer.erase(buffer.begin());
+  str.erase(str.begin());
+  BOOST_CHECK( seq_eq(buffer, str) );
+  BOOST_CHECK_EQUAL( --position, buffer.position() );
+
+  // Assert that erasing from right before the cursor does what we expect
+  buffer.erase(buffer.here()-1);
+  str.erase(str.begin() + (position - 1));
+  BOOST_CHECK( seq_eq(buffer, str) );
+  BOOST_CHECK_EQUAL( --position, buffer.position() );
+  
+  // Assert that erasing from the cursor does what we expect
+  buffer.erase(buffer.here());
+  str.erase(str.begin() + position);
+  BOOST_CHECK( seq_eq(buffer, str) );
+  BOOST_CHECK_EQUAL( position, buffer.position() );
+
+  // Assert that erasing from after the cursor does what we expect
+  buffer.erase(buffer.here()+1);
+  str.erase(str.begin() + position + 1);
+  BOOST_CHECK( seq_eq(buffer, str) );
+  BOOST_CHECK_EQUAL( position, buffer.position() );
+
+  // Assert that erasing from the end does what we expect
+  buffer.erase(buffer.end()-1);
+  str.erase(str.end() - 1);
+  BOOST_CHECK( seq_eq(buffer, str) );
+  BOOST_CHECK_EQUAL( position, buffer.position() );
+}
+
+
+
+BOOST_AUTO_TEST_CASE(erase_range_iter)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+  buffer.advance(-10);
+  size_t position = buffer.position();
+
+  // Assert that erasing across the gap works as expected and places the cursor
+  // at the first element after the deleted ones
+  {
+    buffer.erase(buffer.here()-1, buffer.here()+1);
+    str.erase(str.begin() + (position - 1), str.begin() + (position + 1));
+    BOOST_CHECK( seq_eq( buffer, str ) );
+    position -= 1;
+    BOOST_CHECK_EQUAL(position, buffer.position());
+  }
+
+  // Assert that erasing before the gap works as expected and moves the cursor
+  {
+    buffer.erase(buffer.begin(), buffer.begin()+2);
+    str.erase(str.begin(), str.begin() + 2);
+    BOOST_CHECK( seq_eq( buffer, str ) );
+    position -= 2;
+    BOOST_CHECK_EQUAL(position, buffer.position());
+  }
+
+  // Assert that erasing at the gap works as expected and does not move the gap
+  {
+    buffer.erase(buffer.here(), buffer.here()+2);
+    str.erase(str.begin() + position, str.begin() + position + 2);
+    BOOST_CHECK( seq_eq( buffer, str ) );
+    BOOST_CHECK_EQUAL(position, buffer.position());
+  }
+
+
+  // Assert that erasing after the gap works as expected and does not move the
+  // cursor
+  {
+    buffer.erase(buffer.end()-2, buffer.end());
+    str.erase(str.end()-2, str.end());
+    BOOST_CHECK( seq_eq( buffer, str ) );
+    BOOST_CHECK_EQUAL(position, buffer.position());
+  }
+}
+
+
 //@todo front(), front() const
-//@todo erase(iter), erase(iter, iter)
 //@todo clear()
 //@todo resize(n)
 
