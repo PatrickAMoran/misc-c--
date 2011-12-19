@@ -28,6 +28,18 @@ struct Concept_Checks
   BOOST_CONCEPT_ASSERT(( boost::Sequence<               forward_t >));
 };
 
+template<class T>
+std::ostream & operator<<(std::ostream & os, gap_buffer<T> const & buf)
+{
+  os << '"';
+  for(typename gap_buffer<T>::const_iterator iter = buf.begin(), 
+	end = buf.end(); iter != end; ++iter)
+    os << (*iter);
+  os << '"' << std::endl;
+  return os;
+}
+
+
 BOOST_AUTO_TEST_SUITE(gap_buffer_tests)
 
 typedef gap_buffer<std::deque<char> > buffer_t;
@@ -44,9 +56,9 @@ TIter advance_copy(TIter const & iter, size_t n)
 template<class TSeqA, class TSeqB>
 bool seq_eq(TSeqA const & a, TSeqB const & b)
 {
-  return std::mismatch( a.begin(), a.end(),
-			b.begin() ) ==
-    std::make_pair(a.end(), b.end());
+  return a.size() == b.size() &&
+    std::mismatch( a.begin(), a.end(),
+		   b.begin() ).first == a.end();
 }
 
 
@@ -188,7 +200,8 @@ BOOST_AUTO_TEST_CASE(copy_constructor)
   
   buffer_t copy_constructed(copied_value);
   assert_properties_size(copy_constructed, 1);
-  BOOST_CHECK(copy_constructed == copied_value);
+  BOOST_CHECK_EQUAL( copy_constructed, copied_value );
+  BOOST_CHECK( seq_eq(copy_constructed, copied_value) );
   BOOST_CHECK(!(copy_constructed != copied_value));
 
   // Assert that absence of unintended aliasing
@@ -204,7 +217,7 @@ BOOST_AUTO_TEST_CASE(fill_constructor)
   
   buffer_t fill_constructed_2( first_len, '\0');
   assert_properties_size( fill_constructed_1, first_len );
-  BOOST_CHECK( fill_constructed_1 == fill_constructed_2 );
+  BOOST_CHECK_EQUAL( fill_constructed_1, fill_constructed_2 );
 
   { // Demonstrate its equivalence to another container's fill constructor
     std::vector<char> other_cont(first_len, '\0');
@@ -732,13 +745,143 @@ BOOST_AUTO_TEST_CASE(iterator_movement)
   --iter;
   BOOST_CHECK_EQUAL(*iter, 'o');
 
+  BOOST_CHECK(  (iter == (citer-4)) );
   citer = citer - 4;
   BOOST_CHECK(  (iter == citer) );
 }
 
+BOOST_AUTO_TEST_CASE(insert_at_iter)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+
+  buffer.advance(-13);
+
+  {
+    // Demonstrate that inserting data before the cursor works and does move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    buffer_t::iterator insert_pos = buffer.here();
+    --insert_pos;
+    buffer.insert(insert_pos, 'Z');
+    str.insert(str.begin() + 11, 'Z');
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before + 1, buffer.position() );
+  }
+  {
+    // Demonstrate that inserting data at the cursor works and does move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    buffer.insert(buffer.here(), 'Y');
+    str.insert(str.begin() + 13, 'Y');
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before + 1, buffer.position() );
+  }
+  {
+    // Demonstrate that inserting data after the cursor works and does not move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    buffer.insert(buffer.here() + 1, 'X');
+    str.insert(str.begin() + 15, 'X');
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before, buffer.position() );
+  }
+}
+
+
+BOOST_AUTO_TEST_CASE(insert_n_at_iter)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+
+  buffer.advance(-13);
+
+  {
+    // Demonstrate that inserting data before the cursor works and does move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    buffer.insert(buffer.here()-1, 3, 'Z');
+    str.insert(str.begin() + 11, 3, 'Z');
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before + 3, buffer.position() );
+  }
+  {
+    // Demonstrate that inserting data at the cursor works and does move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    buffer.insert(buffer.here(), 4, 'Y');
+    str.insert(str.begin() + 15, 4, 'Y');
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before + 4, buffer.position() );
+  }
+  {
+    // Demonstrate that inserting data after the cursor works and does not move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    buffer.insert(buffer.here() + 1, 1, 'X');
+    str.insert(str.begin() + 20, 1, 'X');
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before, buffer.position() );
+  }
+  {
+    // Demonstrate that inserting no data has no effect
+    size_t const pos_before = buffer.position();
+    buffer.insert(buffer.here(), 0, 'X');
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before, buffer.position() );
+  }
+}
+
+
+BOOST_AUTO_TEST_CASE(insert_range_at_iter)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+
+  buffer.advance(-13);
+
+  {
+    // Demonstrate that inserting data before the cursor works and does move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    std::string const insert_str("ZZZ");
+    buffer.insert(buffer.here()-1, insert_str.begin(), insert_str.end());
+    str.insert(str.begin() + 11, insert_str.begin(), insert_str.end());
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before + insert_str.size(), buffer.position() );
+  }
+  {
+    // Demonstrate that inserting data at the cursor works and does move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    std::string const insert_str("YYYY");
+    buffer.insert(buffer.here(), insert_str.begin(), insert_str.end());
+    str.insert(str.begin() + 15, insert_str.begin(), insert_str.end());
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before + insert_str.size(), buffer.position() );
+  }
+  {
+    // Demonstrate that inserting data after the cursor works and does not move
+    // the cursor
+    size_t const pos_before = buffer.position();
+    std::string const insert_str("X");
+    buffer.insert(buffer.here() + 1, insert_str.begin(), insert_str.end());
+    str.insert(str.begin() + 20, insert_str.begin(), insert_str.end());
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before, buffer.position() );
+  }
+  {
+    // Demonstrate that inserting no data has no effect
+    size_t const pos_before = buffer.position();
+    std::string const insert_str;
+    buffer.insert(buffer.here(), insert_str.begin(), insert_str.end());
+    BOOST_CHECK( seq_eq(buffer, str) );
+    BOOST_CHECK_EQUAL( pos_before, buffer.position() );
+  }
+}
+
 
 //@todo front(), front() const
-//@todo insert(position, elem), insert(position, n, elem), insert(position, iter, iter)
 //@todo erase(iter), erase(iter, iter)
 //@todo clear()
 //@todo resize(n)
