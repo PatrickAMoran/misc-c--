@@ -971,8 +971,89 @@ BOOST_AUTO_TEST_CASE(erase_range_iter)
 }
 
 
-//@todo front(), front() const
-//@todo clear()
-//@todo resize(n)
+// ----- ----- ------ Miscellaneous ----- ----- -----
+
+BOOST_AUTO_TEST_CASE(front)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+  buffer_t const & cbuffer = buffer;
+
+  BOOST_CHECK_EQUAL(buffer.front(), str[0]);
+  BOOST_CHECK_EQUAL(cbuffer.front(), buffer.front());
+
+  buffer.erase(buffer.begin());
+  str.erase(str.begin());
+
+  BOOST_CHECK_EQUAL(buffer.front(), str[0]);
+  BOOST_CHECK_EQUAL(cbuffer.front(), buffer.front());
+}
+
+BOOST_AUTO_TEST_CASE(clear)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+
+  BOOST_CHECK( seq_eq(str, buffer) );
+
+  buffer.clear();
+  assert_properties_empty( buffer );
+
+  buffer.clear();
+  assert_properties_empty( buffer );
+}
+
+BOOST_AUTO_TEST_CASE(resize)
+{
+  std::string str("Some data to iterate over");
+  buffer_t buffer(str.begin(), str.end());
+  buffer.advance(-10);
+  size_t position = buffer.position();
+  BOOST_CHECK( seq_eq(str, buffer) );
+
+  // Assert that a resize to the current size does nothing
+  buffer.resize(str.size());
+  BOOST_CHECK( seq_eq(str, buffer) );
+  BOOST_CHECK_EQUAL(position, buffer.position());
+
+  // Assert that a growing resize appends nulls
+  {
+    std::string appended_str(str);
+    appended_str.insert(appended_str.end(), '\0');
+
+    buffer.resize(appended_str.size(), '\0');
+    BOOST_CHECK_EQUAL(position, buffer.position());
+    BOOST_CHECK(seq_eq(appended_str, buffer));
+    BOOST_CHECK_EQUAL(*(buffer.begin()), 'S');
+    BOOST_CHECK_EQUAL(*(buffer.end()-1), '\0');
+  }
+
+  // Assert that a shrinking resize shrinks
+  {
+    std::string shrunken_str(str);
+    shrunken_str.resize(str.size()-5, '\0');
+
+    buffer.resize(shrunken_str.size(), '\0');
+    BOOST_CHECK_EQUAL(position, buffer.position());
+    BOOST_CHECK(seq_eq(shrunken_str, buffer));
+    BOOST_CHECK_EQUAL(*(buffer.begin()), 'S');
+    BOOST_CHECK_EQUAL(*(buffer.end()-1), 'e');
+  }
+
+
+  // Assert that when a shrinking resize shrinks across the gap, the gap moves
+  {
+    std::string shrunken_str(str);
+    shrunken_str.resize(str.size()-12, '\0');
+
+    buffer.resize(shrunken_str.size(), '\0');
+    BOOST_CHECK_EQUAL(position-2, buffer.position());
+    BOOST_CHECK(seq_eq(shrunken_str, buffer));
+    BOOST_CHECK_EQUAL(*(buffer.begin()), 'S');
+    BOOST_CHECK_EQUAL(*(buffer.end()-1), ' ');
+  }  
+
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
