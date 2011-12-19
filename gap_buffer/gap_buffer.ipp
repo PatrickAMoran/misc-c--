@@ -82,7 +82,7 @@ typename gap_buffer<TContainer>::size_type
 gap_buffer<TContainer>::
 max_size() const
 {
-  return before.max_size();
+  return std::min(before.max_size(), after.max_size());
 }
 
 template<class TContainer>
