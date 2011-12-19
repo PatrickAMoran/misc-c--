@@ -57,10 +57,10 @@
                       gap buffer will own two instances of TContainer - the area
 		      before the cursor and the area after the cursor.
 		      TContainer must be a model of the C++ STL concept
-		      "Reversible Container".  While the still function
-		      correctly, desired performance characteristics will only
-		      be met if it also models "Front Insertion Sequence" and
-		      "Back Insertion Sequence".
+		      "Reversible Container".  While the gap_buffer will still
+		      function correctly, desired performance characteristics
+		      will only be met if it also models "Front Insertion
+		      Sequence" and "Back Insertion Sequence".
 */
 template<class TContainer>
 class gap_buffer
@@ -108,12 +108,20 @@ public:
   typedef typename TContainer::difference_type             difference_type;
 
   /// Return the number of elements in the gap_buffer
+  /// @note \b Complexity: The same complexity as TContainer::size().  This
+  ///       means that it is upper-bounded by O(n)
   size_type size() const;
+
   /// Return the maximum number of elements a gap_buffer might hold
+  /// @note \b Complexity: Amortized O(1)
   size_type max_size() const;
+
   /// Return if the gap_buffer is empty
+  /// @note \b Complexity: Amortized O(1)
   bool empty() const;
+
   /// Swap this gap_buffer with another
+  /// @note \b Complexity: Amortized O(1)
   void swap(gap_buffer & other);
   //@}
 
@@ -130,32 +138,44 @@ public:
     const_reverse_iterator> reverse_iterator;
 
   /// Return the cursor position as an iterator
+  /// @note \b Complexity: O(1)
   iterator here();
   /// Return the cursor position as an iterator
+  /// @note \b Complexity: O(1)
   const_iterator here() const;
   /// Return the cursor position as a reverse iterator
+  /// @note \b Complexity: O(1)
   reverse_iterator rhere();
   /// Return the cursor position as a reverse iterator
+  /// @note \b Complexity: O(1)
   const_reverse_iterator rhere() const;
 
   /// Get an iterator to the beginning of the gap_buffer
+  /// @note \b Complexity: O(1)
   iterator begin();
   /// Get an iterator to one element past the end of the gap_buffer
+  /// @note \b Complexity: O(1)
   iterator end();
   /// Get a const iterator to the beginning of the gap_buffer
+  /// @note \b Complexity: O(1)
   const_iterator begin() const;
   /// Get a const iterator to one element past the end of the gap_buffer
+  /// @note \b Complexity: O(1)
   const_iterator end() const;
 
   /// Get a reverse iterator to the beginning of the reversed gap_buffer
+  /// @note \b Complexity: O(1)
   reverse_iterator rbegin();
   /// @brief Get a reverse iterator to one element past the end of the reversed
   /// gap_buffer
+  /// @note \b Complexity: O(1)
   reverse_iterator rend();
   /// Get a const reverse iterator to the beginning of the reversed gap_buffer
+  /// @note \b Complexity: O(1)
   const_reverse_iterator rbegin() const;
   /// @brief Get a reverse const iterator to one element past the end of the
   /// reversed gap_buffer
+  /// @note \b Complexity: O(1)
   const_reverse_iterator rend() const;
   //@}
 
@@ -165,52 +185,66 @@ public:
   gap_buffer();
   
   /// Copy-construct a gap_buffer
+  /// @note \b Complexity: O(other.size())
   gap_buffer(gap_buffer const & other);
 
   /// Fill-construct a gap_buffer with n copies of e and the cursor at the end
+  /// @note \b Complexity: O(n)
   gap_buffer(size_type n, value_type e = value_type());
 
   /// @brief Construct a gap buffer whose contents are the range [i, j) with
   ///        the cursor at the end
   /// @tparam InputIterator A model of Input Iterator whose value_type is
   ///                       convertible to value_type
+  /// @note \b Complexity: O(std::distance(i, j))
   template<class InputIterator>
   gap_buffer(InputIterator const & i, InputIterator const & j);
 
   /// Retrieve the first element of the gap_buffer
+  /// @note \b Complexity: O(1)
   reference       front();
   /// Retrieve the first element of the gap_buffer
+  /// @note \b Complexity: O(1)
   const_reference front() const;
 
   /// Insert element immediately following position.  If position is at or
   /// before the cursor, advance the cursor one position.
+  /// @note \b Complexity: O(n)
   iterator insert(iterator position, const_reference element);
 
   /// Insert n copies of element immediately following position.  If position
   /// is at or before the cursor, advance the cursor n positions.
+  /// @note \b Complexity: O(n)
   void insert(iterator position, size_type n, const_reference element);
 
   /// Insert the range of elements [i,j) immediately following position. If
   /// position is at or before the cursor, advance the cursor n positions.
+  /// @note \b Complexity: O(n)
   template<class InputIterator>
   void insert(iterator position, 
 	      InputIterator const & i, InputIterator const & j);
 
   /// Erase the element at position.  If the cursor was at position, move it to
   /// one spot earlier, unless *this is empty.
+  /// @note \b Complexity: O(n)
   iterator erase(iterator position);
 
   /// Erase the elements in [start,end).  If the cursor was within this range,
   /// move it to immediately before the range, unless *this is now empty.
+  /// @note \b Complexity: O(n)
   iterator erase(iterator start, iterator end);
 
   /// Remove all the elements in this and move the cursor to the beginning
+  /// @note \b Complexity: O(n)
   void clear();
 
   /// Resize the gap_buffer.  If the buffer is growing, pad the end with copies
   /// of e.  If the buffer is shrinking, discard elements from the end.
+  /// @note \b Complexity: O(n)
   void resize(size_type n, value_type const & e = value_type());
 
+  /// Assign one gap_buffer to another
+  /// @note \b Complexity: O(n)
   gap_buffer & operator=(gap_buffer const & other);
   //@}
 
@@ -218,23 +252,28 @@ public:
   /// @name Cursor Handling
   //@{
   /// Return the cursor position of the gap buffer
+  /// @note \b Complexity: O(1)
   size_type position() const;
   
   /// Move the cursor position
-  void advance(difference_type const);
+  /// @note \b Complexity: O(abs(dist))
+  void advance(difference_type const dist);
 
   /// @brief Remove data from this position.
   /// @details A positive value erases the given number of values from ahead of
   /// the cursor.  A negative value erases the absolute value of the given
   /// number of cursors from behind the cursor.
-  void erase(difference_type const);
+  /// @note \b Complexity: O(abs(dist))
+  void erase(difference_type const dist);
 
   /// Insert an element at the cursor
+  /// @note \b Complexity: O(1)
   size_type insert(value_type const);
 
   /// @brief Insert a range of elements at the cursor
   /// @param range Any range of elements Boost.Range recognizes as a Single Pass
   ///              Range.
+  /// @note \b Complexity: O(boost::size(range))
   template<class TSinglePassRange>
   size_type insert(TSinglePassRange const & range);
   //@}
@@ -250,16 +289,28 @@ private:
 
 ///@name Comparisons
 //@{
+/// Test two gap_buffers for equality
+/// @note \b Complexity: O(n)
 template<class TCont>
 bool operator==(gap_buffer<TCont> const &, gap_buffer<TCont> const &);
+/// Test two gap_buffers for inequality
+/// @note \b Complexity: O(n)
 template<class TCont>
 bool operator!=(gap_buffer<TCont> const &, gap_buffer<TCont> const &);
+/// Test if one gap_buffer is less than another
+/// @note \b Complexity: O(n)
 template<class TCont>
 bool operator<(gap_buffer<TCont> const &, gap_buffer<TCont> const &);
+/// Test if one gap_buffer is greater than another
+/// @note \b Complexity: O(n)
 template<class TCont>
 bool operator>(gap_buffer<TCont> const &, gap_buffer<TCont> const &);
+/// Test if one gap_buffer is less than or equal to another
+/// @note \b Complexity: O(n)
 template<class TCont>
 bool operator<=(gap_buffer<TCont> const &, gap_buffer<TCont> const &);
+/// Test if one gap_buffer is greater than or equal to another
+/// @note \b Complexity: O(n)
 template<class TCont>
 bool operator>=(gap_buffer<TCont> const &, gap_buffer<TCont> const &);
 //@}
