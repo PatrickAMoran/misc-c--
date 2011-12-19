@@ -53,7 +53,10 @@ public:
     , location(here)
     , before_end(bef_end)
     , after_begin(aft_beg)
-  {}
+  {
+    normalize();
+  }
+
 private:
   void normalize()
   {
@@ -84,7 +87,6 @@ protected:
   // Increment the iterator, as a callback to Boost.Iterator
   void increment()
   {
-    normalize();
     ++location;
     normalize();
   }
@@ -96,7 +98,6 @@ protected:
       is_before = true;
     }
     --location;
-    normalize();
   }
   // Advance the iterator, as a callback to Boost.Iterator
   void advance(difference_type n)
