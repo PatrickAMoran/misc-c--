@@ -79,8 +79,7 @@ protected:
   // Compare the iterator for equality, as a callback to Boost.Iterator
   bool equal(iterator_impl const & other) const
   {
-    
-    return (is_before == other.is_before) && location==other.location;
+    return location==other.location;
   }
   // Increment the iterator, as a callback to Boost.Iterator
   void increment()
