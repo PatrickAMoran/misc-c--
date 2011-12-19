@@ -733,7 +733,7 @@ BOOST_AUTO_TEST_CASE(iterator_movement)
   buffer_t const & cbuffer = buffer;
 
   iterator iter = buffer.end();
-  const_iterator citer = buffer.end();
+  const_iterator citer = cbuffer.end();
   BOOST_CHECK(  (iter == citer) );
 
   --iter;

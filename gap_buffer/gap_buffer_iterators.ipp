@@ -102,7 +102,7 @@ protected:
   {
     if(n > 0){
       if(is_before){
-	size_type const dist = std::distance(location, before_end);
+	difference_type const dist = std::distance(location, before_end);
 	if(dist <= n){
 	  n -= dist;
 	  location = after_begin;
@@ -111,7 +111,7 @@ protected:
       }
     }else{
       if(!is_before){
-	size_type const dist = std::distance(after_begin, location);
+	difference_type const dist = std::distance(after_begin, location);
 	if(dist <= -n){
 	  n += dist;
 	  location = before_end;
