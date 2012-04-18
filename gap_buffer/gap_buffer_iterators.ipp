@@ -29,9 +29,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-// Include boost::iterator_facade from Boost.Iterator
 #include <boost/iterator/iterator_facade.hpp>
-
 #include <iterator>
 
 

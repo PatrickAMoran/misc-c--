@@ -29,10 +29,8 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-// Include boost::begin and boost::end from Boost.Range
 #include <boost/range/begin.hpp>
 #include <boost/range/end.hpp>
-
 
 #include <algorithm>
 
@@ -165,9 +163,11 @@ gap_buffer<TContainer>::
 rhere()
 {
   if(!after.empty())
-    return reverse_iterator(after.rend()-1, true, after.rend(), before.rbegin());
+    return reverse_iterator(after.rend()-1, true,
+			    after.rend(), before.rbegin());
   else
-    return reverse_iterator(before.rbegin(), false, after.rend(), before.rbegin());
+    return reverse_iterator(before.rbegin(), false,
+			    after.rend(), before.rbegin());
 }
 
 template<class TContainer>
@@ -223,9 +223,11 @@ gap_buffer<TContainer>::
 rbegin()
 {
   if(after.empty())
-    return reverse_iterator(before.rbegin(), false, after.rend(), before.rbegin());
+    return reverse_iterator(before.rbegin(), false, 
+			    after.rend(), before.rbegin());
   else
-    return reverse_iterator(after.rbegin(), true, after.rend(), before.rbegin());
+    return reverse_iterator(after.rbegin(), true,
+			    after.rend(), before.rbegin());
 }
 
 template<class TContainer>
@@ -405,34 +407,24 @@ gap_buffer<TContainer>::resize(size_type n, value_type const & e)
     after.resize(n - before.size());
 }
 
-template<class TContainer>
-bool
-operator==(gap_buffer<TContainer> const & lhs, 
-	   gap_buffer<TContainer> const & rhs)
+#define BINARY_BUFFER_BOOL_OPER(oper)				\
+  template<class TContainer>					\
+  bool operator oper ( gap_buffer<TContainer> const & lhs,	\
+		       gap_buffer<TContainer> const & rhs)
+
+BINARY_BUFFER_BOOL_OPER( == )
 {
   return (lhs.size() == rhs.size()) && 
     (std::mismatch(lhs.begin(), lhs.end(), rhs.begin()).first == lhs.end());
 }
-template<class TContainer>
-bool
-operator!=(gap_buffer<TContainer> const & lhs, 
-	   gap_buffer<TContainer> const & rhs)
-{
-  return !(lhs == rhs);
-}
 
-template<class TContainer>
-bool
-operator<(gap_buffer<TContainer> const & lhs, 
-	  gap_buffer<TContainer> const & rhs)
+BINARY_BUFFER_BOOL_OPER( < )
 {
   return std::lexicographical_compare(lhs.begin(), lhs.end(), 
 				      rhs.begin(), rhs.end());
 }
-template<class TContainer>
-bool
-operator<=(gap_buffer<TContainer> const & lhs, 
-	   gap_buffer<TContainer> const & rhs)
+
+BINARY_BUFFER_BOOL_OPER( <= )
 {
   typename gap_buffer<TContainer>::const_iterator const left_end =
     ((lhs.size() > rhs.size()) ?
@@ -449,17 +441,9 @@ operator<=(gap_buffer<TContainer> const & lhs,
     return (*rtn.first < *rtn.second);
 }
 
-template<class TContainer>
-bool
-operator>(gap_buffer<TContainer> const & lhs, 
-	  gap_buffer<TContainer> const & rhs)
-{
-  return (rhs < lhs);
-}
-template<class TContainer>
-bool
-operator>=(gap_buffer<TContainer> const & lhs, 
-	   gap_buffer<TContainer> const & rhs)
-{
-  return (rhs <= lhs);
-}
+BINARY_BUFFER_BOOL_OPER( != ) { return !(lhs == rhs); }
+BINARY_BUFFER_BOOL_OPER( > )  { return  (rhs <  lhs); }
+BINARY_BUFFER_BOOL_OPER( >= ) { return  (rhs <= lhs); }
+
+
+#undef BINARY_BUFFER_BOOL_OPER
