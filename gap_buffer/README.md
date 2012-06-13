@@ -18,16 +18,17 @@ is a pure C++03 implementation, no C++11 features are required.
 
 Status
 ------
-This particular implementation is in an active-development status,  It is not
-stable or finished.  It is likely that it contains errors.  The absence of any
-testing should hint you as to the quality of this code.  However, watch this
-repository for improvement.
+This particular implementation lacks its first major user, but is expected to
+perform correctly.  Feel free to use it, and if it breaks on you, I will fix
+bugs prompty.
+
 
 TODO
 ----
 Planned improvements to this class template include:
 
-* General cleanup / reorganization of the ipp file.
 * Make doxygen report 'boost::enable_if_c<condition, type>' as 'type'
-* Add lots more testing and verification
-* Use Boost.ConceptCheck to provide users with better error messages
+* Alter member functions to not actually move data until the insertion point is
+  used
+* Employ code-coverage tools to ensure test coverage
+* Profile the implementation
