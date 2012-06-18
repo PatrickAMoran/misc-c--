@@ -55,12 +55,12 @@
 
    @tparam TContainer The underlying container type of the gap buffer.  A single
                       gap buffer will own two instances of TContainer - the area
-		      before the cursor and the area after the cursor.
-		      TContainer must be a model of the C++ STL concept
-		      "Reversible Container".  While the gap_buffer will still
-		      function correctly, desired performance characteristics
-		      will only be met if it also models "Front Insertion
-		      Sequence" and "Back Insertion Sequence".
+                      before the cursor and the area after the cursor.
+                      TContainer must be a model of the C++ STL concept
+                      "Reversible Container".  While the gap_buffer will still
+                      function correctly, desired performance characteristics
+                      will only be met if it also models "Front Insertion
+                      Sequence" and "Back Insertion Sequence".
 */
 template<class TContainer>
 class gap_buffer
@@ -86,8 +86,9 @@ private:
   typedef typename std::iterator_traits<typename TContainer::iterator>::
   iterator_category iterator_category;
 
-  TContainer before;
-  TContainer after;
+  TContainer                           before;
+  TContainer                           after;
+  typename TContainer::difference_type offset;
 
 public:
   /// @name Other Container requirements
@@ -279,6 +280,14 @@ public:
   //@}
 
 private:
+  /// Actually move the data from one container to the other
+  void resolve_offset();
+  /// Actually move the data from one container to the other, taking an iterator
+  /// valid prior to the resolution and returning the equivalent iterator after
+  /// the resolution.
+  iterator resolve_offset(iterator i);
+
+
   // Check our iterator's concepts
   BOOST_CONCEPT_ASSERT((boost::Mutable_BidirectionalIterator<        iterator>));
   BOOST_CONCEPT_ASSERT((boost::Mutable_BidirectionalIterator<reverse_iterator>));

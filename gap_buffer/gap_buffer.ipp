@@ -35,7 +35,79 @@
 #include <algorithm>
 
 // Pull in the iterator implementation
+
 #include "gap_buffer_iterators.ipp"
+#include <iostream>
+
+template<class TContainer>
+void
+gap_buffer<TContainer>::
+resolve_offset()
+{
+  if(offset == 0)
+    return;
+  else if(offset < 0){
+    typename TContainer::iterator start_iter = before.end();
+    std::advance(start_iter, offset);
+    after.insert(after.begin(), start_iter, before.end());
+    before.erase(start_iter, before.end());
+    offset = 0;
+  }else{
+    typename TContainer::iterator end_iter = after.begin();
+    std::advance(end_iter, offset);
+    before.insert(before.end(), after.begin(), end_iter);
+    after.erase(after.begin(), end_iter);
+    offset = 0;
+  }
+}
+
+
+template<class TContainer>
+typename gap_buffer<TContainer>::iterator
+gap_buffer<TContainer>::
+resolve_offset(typename gap_buffer<TContainer>::iterator iter)
+{
+  if(offset == 0)
+    return iter;
+
+  typename TContainer::iterator pos_iter = iter.location;
+  bool pos_before = iter.is_before;
+
+  if(offset < 0){
+    typename TContainer::iterator start_iter = before.end();
+    difference_type const iter_dist =
+      (pos_before ? std::distance(pos_iter, start_iter) : 0);
+
+    std::advance(start_iter, offset);
+    after.insert(after.begin(), start_iter, before.end());
+    before.erase(start_iter, before.end());
+
+    if(pos_before && iter_dist <= offset){
+      pos_iter = after.begin();
+      pos_before = false;
+      std::advance(pos_iter, offset - iter_dist);
+    }
+
+    offset = 0;
+  }else{
+    typename TContainer::iterator end_iter = after.begin();
+    difference_type const iter_dist =
+      (pos_before ? 0 : std::distance(end_iter, pos_iter));
+
+    std::advance(end_iter, offset);
+    before.insert(before.end(), after.begin(), end_iter);
+    after.erase(after.begin(), end_iter);
+    if(!pos_before && iter_dist < offset){
+      pos_iter = before.end();
+      pos_before = true;
+      std::advance(pos_iter, -(-offset - iter_dist));
+    }
+
+    offset = 0;
+  }
+
+  return iterator(pos_iter, pos_before, before.end(), after.begin());
+}
 
 
 template<class TContainer>
@@ -44,6 +116,7 @@ typename gap_buffer<TContainer>::size_type
 gap_buffer<TContainer>::
 insert(TSinglePassCharRange const & rng)
 {
+  resolve_offset();
   before.insert(before.end(), boost::begin(rng), boost::end(rng));
   return position();
 }
@@ -53,6 +126,7 @@ typename gap_buffer<TContainer>::size_type
 gap_buffer<TContainer>::
 insert(value_type const c)
 {
+  resolve_offset();
   before.insert(before.end(), c);
   return position();
 }
@@ -64,7 +138,7 @@ typename gap_buffer<TContainer>::size_type
 gap_buffer<TContainer>::
 position() const
 {
-  return before.size();
+  return before.size() + offset;
 }
 
 template<class TContainer>
@@ -98,6 +172,7 @@ swap(gap_buffer<TContainer> & other)
 {
   other.before.swap(before);
   other.after.swap(after);
+  std::swap(offset, other.offset);
 }
 
 
@@ -106,19 +181,7 @@ void
 gap_buffer<TContainer>::
 advance(typename gap_buffer<TContainer>::difference_type const d)
 {
-  size_type const magnitude = abs(d);
-  if(d == 0)
-    return;
-  else if(d < 0)
-    {
-      after.insert(after.begin(), before.end() - magnitude, before.end());
-      before.erase(before.end() - magnitude, before.end());
-    }
-  else
-    {
-      before.insert(before.end(), after.begin(), after.begin() + magnitude);
-      after.erase(after.begin(), after.begin() + magnitude);
-    }
+  offset += d;
 }
 
 
@@ -130,14 +193,13 @@ erase(typename gap_buffer<TContainer>::difference_type const d)
   size_type const magnitude = abs(d);
   if(d == 0)
     return;
-  else if(d < 0)
-    {
-      before.erase(before.end() - magnitude, before.end());
-    }
-  else
-    {
-      after.erase(after.begin(), after.begin() + magnitude);
-    }
+
+  resolve_offset();
+  if(d < 0){
+    before.erase(before.end() - magnitude, before.end());
+  }else{
+    after.erase(after.begin(), after.begin() + magnitude);
+  }
 }
 
 template<class TContainer>
@@ -145,7 +207,9 @@ typename gap_buffer<TContainer>::iterator
 gap_buffer<TContainer>::
 here()
 {
-  return iterator(after.begin(), false, before.end(), after.begin());
+  iterator rtn(after.begin(), false, before.end(), after.begin());
+  std::advance(rtn, offset);
+  return rtn;
 }
 
 template<class TContainer>
@@ -153,7 +217,9 @@ typename gap_buffer<TContainer>::const_iterator
 gap_buffer<TContainer>::
 here() const
 {
-  return const_iterator(after.begin(), false, before.end(), after.begin());
+  const_iterator rtn(after.begin(), false, before.end(), after.begin());
+  std::advance(rtn, offset);
+  return rtn;
 }
 
 
@@ -162,12 +228,13 @@ typename gap_buffer<TContainer>::reverse_iterator
 gap_buffer<TContainer>::
 rhere()
 {
-  if(!after.empty())
-    return reverse_iterator(after.rend()-1, true,
-			    after.rend(), before.rbegin());
-  else
-    return reverse_iterator(before.rbegin(), false,
-			    after.rend(), before.rbegin());
+  reverse_iterator rtn = after.empty() ?
+    reverse_iterator(before.rbegin(), false,
+                     after.rend(), before.rbegin()) :
+    reverse_iterator(after.rend()-1, true,
+                     after.rend(), before.rbegin());
+  std::advance(rtn, -offset);
+  return rtn;
 }
 
 template<class TContainer>
@@ -258,12 +325,14 @@ rend() const
 
 template<class TContainer>
 gap_buffer<TContainer>::gap_buffer()
+  : offset(0)
 {}
 
 template<class TContainer>
 gap_buffer<TContainer>::gap_buffer(gap_buffer const & other)
   : before(other.before)
   , after(other.after)
+  , offset(other.offset)
 {}
 
 template<class TContainer>
@@ -272,6 +341,7 @@ gap_buffer<TContainer>::operator=(gap_buffer const & other)
 {
   before = other.before;
   after = other.after;
+  offset = other.offset;
   return *this;
 }
 
@@ -279,33 +349,36 @@ gap_buffer<TContainer>::operator=(gap_buffer const & other)
 template<class TContainer>
 gap_buffer<TContainer>::gap_buffer(size_type n, value_type e)
   : before(n, e)
+  , offset(0)
 {}
 
 template<class TContainer>
 template<class InputIterator>
 gap_buffer<TContainer>::gap_buffer(InputIterator const & i,
-				   InputIterator const & j)
+                                   InputIterator const & j)
   : before(i, j)
+  , offset(0)
 {}
 
 template<class TContainer>
 typename gap_buffer<TContainer>::reference
 gap_buffer<TContainer>::front()
 {
-  return before.front();
+  return !before.empty() ? before.front() : after.front();
 }
 
 template<class TContainer>
 typename gap_buffer<TContainer>::const_reference
 gap_buffer<TContainer>::front() const
 {
-  return before.front();
+  return !before.empty() ? before.front() : after.front();
 }
 
 template<class TContainer>
 typename gap_buffer<TContainer>::iterator
 gap_buffer<TContainer>::insert(iterator position, const_reference element)
 {
+  position = resolve_offset(position);
   typename TContainer::iterator iter;
   bool is_before;
   if(position.location == after.begin()){
@@ -325,8 +398,9 @@ gap_buffer<TContainer>::insert(iterator position, const_reference element)
 template<class TContainer>
 void 
 gap_buffer<TContainer>::insert(iterator position, size_type n,
-			       const_reference element)
+                               const_reference element)
 {
+  position = resolve_offset(position);
   if(position.location == after.begin())
     before.insert(before.end(), n, element);
   else if(position.is_before)
@@ -339,8 +413,9 @@ template<class TContainer>
 template<class InputIterator>
 void
 gap_buffer<TContainer>::insert(iterator position,
-			       InputIterator const & i, InputIterator const & j)
+                               InputIterator const & i, InputIterator const & j)
 {
+  position = resolve_offset(position);
   if(position.location == after.begin())
     before.insert(before.end(), i, j);
   else if(position.is_before)
@@ -353,6 +428,7 @@ template<class TContainer>
 typename gap_buffer<TContainer>::iterator
 gap_buffer<TContainer>::erase(iterator position)
 {
+  position = resolve_offset(position);
   bool is_before = position.is_before;
   TContainer & to_erase_from = (is_before ? before : after);
   typename TContainer::iterator iter = to_erase_from.erase(position.location);
@@ -368,6 +444,11 @@ template<class TContainer>
 typename gap_buffer<TContainer>::iterator
 gap_buffer<TContainer>::erase(iterator start, iterator end)
 {
+  difference_type const diff = std::distance(start, end);
+  start = resolve_offset(start);
+  end = start;
+  std::advance(end, diff);
+
   typename TContainer::iterator
     before_begin = (start.is_before ? start.location : before.end()   ),
     before_end   = (end.is_before   ? end.location   : before.end()   ),
@@ -392,6 +473,7 @@ gap_buffer<TContainer>::clear()
 {
   before.clear();
   after.clear();
+  offset = 0;
 }
 
 
@@ -399,6 +481,7 @@ template<class TContainer>
 void
 gap_buffer<TContainer>::resize(size_type n, value_type const & e)
 {
+  resolve_offset();
   if(n <= before.size() || after.empty()){
     after.clear();
     before.resize(n, e);
