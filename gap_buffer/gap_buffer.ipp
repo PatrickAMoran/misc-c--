@@ -51,14 +51,13 @@ resolve_offset()
     std::advance(start_iter, offset);
     after.insert(after.begin(), start_iter, before.end());
     before.erase(start_iter, before.end());
-    offset = 0;
   }else{
     typename TContainer::iterator end_iter = after.begin();
     std::advance(end_iter, offset);
     before.insert(before.end(), after.begin(), end_iter);
     after.erase(after.begin(), end_iter);
-    offset = 0;
   }
+  offset = 0;
 }
 
 
@@ -116,6 +115,8 @@ typename gap_buffer<TContainer>::size_type
 gap_buffer<TContainer>::
 insert(TSinglePassCharRange const & rng)
 {
+  // We just resolve first, since pushing onto the end of before should be about
+  // as efficient as we're going to get.
   resolve_offset();
   before.insert(before.end(), boost::begin(rng), boost::end(rng));
   return position();
@@ -126,6 +127,8 @@ typename gap_buffer<TContainer>::size_type
 gap_buffer<TContainer>::
 insert(value_type const c)
 {
+  // We just resolve first, since pushing onto the end of before should be about
+  // as efficient as we're going to get.
   resolve_offset();
   before.insert(before.end(), c);
   return position();
@@ -190,16 +193,30 @@ void
 gap_buffer<TContainer>::
 erase(typename gap_buffer<TContainer>::difference_type const d)
 {
-  size_type const magnitude = abs(d);
   if(d == 0)
     return;
 
-  resolve_offset();
-  if(d < 0){
-    before.erase(before.end() - magnitude, before.end());
-  }else{
-    after.erase(after.begin(), after.begin() + magnitude);
+  if( (offset <= 0) && (d < 0) ){ // C
+    after.insert(after.begin(), before.end() + offset, before.end());
+    before.erase(before.end() + (d + offset),
+                 before.end());
+  }else if( (offset >= 0) && (d > 0) ){ // F
+    before.insert(before.end(), after.begin(), after.begin() + offset);
+    after.erase(after.begin(), after.begin() + offset + d);
+  }else if( (offset < 0) && (d > 0) && (-offset <= d) ){ // B
+    before.erase(before.end() + offset, before.end());
+    after.erase(after.begin(), after.begin() + (offset + d));
+  }else if( (offset > 0) && (d < 0) && (offset <= -d) ){ // E
+    before.erase(before.end() + offset + d, before.end());
+    after.erase(after.begin(), after.begin() + offset);
+  }else if( (offset <= 0) && (d > 0) && (-offset > d) ){ // A
+    after.insert(after.begin(), before.end() + offset + d, before.end());
+    before.erase(before.end() + offset, before.end());
+  }else if( (offset > 0) && (d < 0) && (offset > -d) ){ // D
+    before.insert(before.end(), after.begin(), after.begin() + offset + d);
+    after.erase(after.begin(), after.begin() + offset);
   }
+  offset = 0;
 }
 
 template<class TContainer>
