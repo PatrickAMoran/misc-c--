@@ -164,7 +164,7 @@ private:
 template<class TContainer>
 template<class TUnderlying, class TConstIter>
 struct gap_buffer<TContainer>::nonconst_iterator_impl
-  : iterator_impl<TUnderlying>
+  : private iterator_impl<TUnderlying>
   , boost::iterator_facade<nonconst_iterator_impl<TUnderlying, TConstIter>,
 			   typename std::iterator_traits<TUnderlying>::value_type,
 			   iterator_category>

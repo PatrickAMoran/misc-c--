@@ -44,6 +44,8 @@
 #include <iterator>
 #include <string>
 
+#include <boost/container/deque.hpp>
+
 // First, our static assertions
 struct Concept_Checks
 {
@@ -60,11 +62,12 @@ struct Concept_Checks
   BOOST_CONCEPT_ASSERT(( boost::Sequence<               forward_t >));
 };
 
+
 template<class T>
 std::ostream & operator<<(std::ostream & os, gap_buffer<T> const & buf)
 {
   os << '"';
-  for(typename gap_buffer<T>::const_iterator iter = buf.begin(), 
+  for(typename gap_buffer<T>::const_iterator iter = buf.begin(),
 	end = buf.end(); iter != end; ++iter)
     os << (*iter);
   os << '"' << std::endl;
@@ -75,6 +78,7 @@ std::ostream & operator<<(std::ostream & os, gap_buffer<T> const & buf)
 BOOST_AUTO_TEST_SUITE(gap_buffer_tests)
 
 typedef gap_buffer<std::deque<char> > buffer_t;
+typedef gap_buffer<boost::container::deque<char> > buffer11_t;
 
 
 template<class TIter>
@@ -111,7 +115,7 @@ void assert_properties_size(TGapBuffer & buf, size_t len)
   BOOST_CHECK( advance_copy(buf.begin(), len) == buf_const.end() );
   BOOST_CHECK( advance_copy(buf_const.rbegin(), len) == buf.rend() );
   BOOST_CHECK( advance_copy(buf.rbegin(), len) == buf_const.rend() );
-  
+
   // (end - begin) == size
   BOOST_CHECK_EQUAL( (std::distance(buf.begin(), buf.end())),
 		     len );
@@ -169,7 +173,7 @@ void assert_properties_nonempty(TGapBuffer & buf)
   BOOST_CHECK( buf_const.begin() != buf.end() );
   BOOST_CHECK( buf.rbegin() != buf_const.rend() );
   BOOST_CHECK( buf_const.rbegin() != buf.rend() );
-  
+
   // (end - begin) > 0
   BOOST_CHECK_GT( (std::distance(buf.begin(), buf.end())),
 		  0 );
@@ -229,7 +233,7 @@ BOOST_AUTO_TEST_CASE(copy_constructor)
     copied_value.insert('x');
     assert_properties_size(copied_value, 1);
   }
-  
+
   buffer_t copy_constructed(copied_value);
   assert_properties_size(copy_constructed, 1);
   BOOST_CHECK_EQUAL( copy_constructed, copied_value );
@@ -241,12 +245,26 @@ BOOST_AUTO_TEST_CASE(copy_constructor)
   BOOST_CHECK( copy_constructed != copied_value );
 }
 
+BOOST_AUTO_TEST_CASE(move_constructor)
+{
+  buffer11_t move_from;
+  {
+    move_from.insert('x');
+    assert_properties_size(move_from, 1);
+  }
+
+  buffer11_t move_constructed( ::boost::move(move_from) );
+  assert_properties_size(move_constructed, 1);
+  BOOST_CHECK( seq_eq(move_constructed, std::string("x")) );
+}
+
+
 BOOST_AUTO_TEST_CASE(fill_constructor)
 {
   size_t const first_len = 7;
   buffer_t fill_constructed_1( first_len );
   assert_properties_size( fill_constructed_1, first_len );
-  
+
   buffer_t fill_constructed_2( first_len, '\0');
   assert_properties_size( fill_constructed_1, first_len );
   BOOST_CHECK_EQUAL( fill_constructed_1, fill_constructed_2 );
@@ -264,14 +282,14 @@ BOOST_AUTO_TEST_CASE(fill_constructor)
     std::vector<char> other_cont(third_len, third_fill_val);
     BOOST_CHECK( seq_eq(fill_constructed_3, other_cont) );
   }
-  
+
 }
 
 BOOST_AUTO_TEST_CASE(iter_pair_constructor)
 {
   static size_t const first_len = 22;
   std::vector<char> other_cont(first_len, '\0');
-  
+
   buffer_t iterator_constructed(other_cont.begin(), other_cont.end());
   // Demonstrate that the data is all there
   BOOST_CHECK( seq_eq(iterator_constructed, other_cont) );
@@ -290,7 +308,7 @@ BOOST_AUTO_TEST_CASE(iter_pair_constructor)
 BOOST_AUTO_TEST_CASE(size)
 {
   buffer_t default_constructed;
-  
+
   BOOST_CHECK_EQUAL( default_constructed.size(), 0 );
 
   // Demonstrate that inserting a single element raises the size by 1
@@ -333,7 +351,7 @@ BOOST_AUTO_TEST_CASE(swap)
 
   buffer_t bufferA(strA.begin(), strA.end());
   buffer_t bufferB(strB.begin(), strB.end());
-  
+
   bufferA.advance(-7);
   size_t const positionA = bufferA.position();
 
@@ -427,7 +445,7 @@ BOOST_AUTO_TEST_CASE(position)
     // Assert that a null at-cursor erase does not move the cursor
     buffer.erase(0);
     BOOST_CHECK_EQUAL(buffer.position(), base_position);
-  
+
     // Assert that an at-cursor erase backwards moves the cursor back
     buffer.erase(-2);
     base_position -= 2;
@@ -674,6 +692,28 @@ BOOST_AUTO_TEST_CASE(assign_operator)
   BOOST_CHECK( bufferA != bufferB );
   BOOST_CHECK( bufferA != bufferC );
   BOOST_CHECK( bufferB == bufferC );
+}
+
+
+BOOST_AUTO_TEST_CASE(move_assign_operator)
+{
+  std::string const strA("Something to compare against");
+  std::string const strB("Something else to compare against");
+
+  buffer11_t bufferA(strA.begin(), strA.end());
+  buffer11_t bufferB(strB.begin(), strB.end());
+  buffer11_t bufferC;
+
+  BOOST_CHECK( bufferA != bufferB );
+  BOOST_CHECK( bufferA != bufferC );
+  BOOST_CHECK( bufferB != bufferC );
+
+  bufferC = boost::move(bufferA);
+  BOOST_CHECK( bufferB != bufferC );
+  BOOST_CHECK( seq_eq(bufferC, strA) );
+
+  bufferA = boost::move(bufferC);
+  BOOST_CHECK( seq_eq(bufferA, strA) );
 }
 
 
@@ -935,7 +975,7 @@ BOOST_AUTO_TEST_CASE(erase_elem_iter)
   str.erase(str.begin() + (position - 1));
   BOOST_CHECK( seq_eq(buffer, str) );
   BOOST_CHECK_EQUAL( --position, buffer.position() );
-  
+
   // Assert that erasing from the cursor does what we expect
   buffer.erase(buffer.here());
   str.erase(str.begin() + position);
@@ -1083,7 +1123,7 @@ BOOST_AUTO_TEST_CASE(resize)
     BOOST_CHECK(seq_eq(shrunken_str, buffer));
     BOOST_CHECK_EQUAL(*(buffer.begin()), 'S');
     BOOST_CHECK_EQUAL(*(buffer.end()-1), ' ');
-  }  
+  }
 
 }
 

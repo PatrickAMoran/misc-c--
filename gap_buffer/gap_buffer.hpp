@@ -38,6 +38,7 @@
 #include <boost/type_traits/is_same.hpp>
 #include <boost/concept/assert.hpp>
 #include <boost/concept_check.hpp>
+#include <boost/move/move.hpp>
 #include <iterator>
 
 
@@ -66,6 +67,9 @@ template<class TContainer>
 class gap_buffer
 {
 private:
+  // Enable Boost.Move move-emulation (or actual move on C++11)
+  BOOST_COPYABLE_AND_MOVABLE(gap_buffer)
+
   // Check our requirements on TContainer
   BOOST_CONCEPT_ASSERT(( boost::Mutable_ForwardContainer<    TContainer> ));
   BOOST_CONCEPT_ASSERT(( boost::Mutable_ReversibleContainer< TContainer> ));
@@ -89,7 +93,6 @@ private:
   TContainer                           before;
   TContainer                           after;
   typename TContainer::difference_type offset;
-
 public:
   /// @name Other Container requirements
   //@{
@@ -189,6 +192,10 @@ public:
   /// @note \b Complexity: O(other.size())
   gap_buffer(gap_buffer const & other);
 
+  /// Move-construct a gap_buffer
+  /// @note Requires that TContainer be movable
+  gap_buffer(BOOST_RV_REF(gap_buffer) other);
+
   /// Fill-construct a gap_buffer with n copies of e and the cursor at the end
   /// @note \b Complexity: O(n)
   gap_buffer(size_type n, value_type e = value_type());
@@ -246,7 +253,11 @@ public:
 
   /// Assign one gap_buffer to another
   /// @note \b Complexity: O(n)
-  gap_buffer & operator=(gap_buffer const & other);
+  gap_buffer & operator=(BOOST_COPY_ASSIGN_REF(gap_buffer) other);
+
+  /// Move assign one gap_buffer to another
+  /// @note \b Complexity: O(1)
+  gap_buffer & operator=(BOOST_RV_REF(gap_buffer) other);
   //@}
 
 

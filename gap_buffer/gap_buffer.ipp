@@ -353,11 +353,28 @@ gap_buffer<TContainer>::gap_buffer(gap_buffer const & other)
 {}
 
 template<class TContainer>
+gap_buffer<TContainer>::gap_buffer(BOOST_RV_REF(gap_buffer) other)
+  : before( ::boost::move(other.before) )
+  , after( ::boost::move(other.after) )
+  , offset(other.offset)
+{}
+
+template<class TContainer>
 gap_buffer<TContainer> &
-gap_buffer<TContainer>::operator=(gap_buffer const & other)
+gap_buffer<TContainer>::operator=(BOOST_COPY_ASSIGN_REF(gap_buffer) other)
 {
   before = other.before;
   after = other.after;
+  offset = other.offset;
+  return *this;
+}
+
+template<class TContainer>
+gap_buffer<TContainer> &
+gap_buffer<TContainer>::operator=(BOOST_RV_REF(gap_buffer) other)
+{
+  before = ::boost::move(other.before);
+  after = ::boost::move(other.after);
   offset = other.offset;
   return *this;
 }
